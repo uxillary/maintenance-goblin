@@ -1,14 +1,12 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk
 import subprocess
 import os
-import shutil
-
+import threading
 import ctypes
 import sys
-import os
 
-#admin priviledges
+# --- Auto-Elevate (Run as Admin) ---
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
@@ -19,60 +17,114 @@ if not is_admin():
     ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
     sys.exit()
 
-# Folder for logs
+# --- GUI Setup ---
+root = tk.Tk()
+root.title("🧼 PC Maintenance Buddy")
+root.geometry("500x450")
+root.resizable(False, False)
+
 LOG_DIR = os.path.join(os.getcwd(), "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 
-def run_command(command, log_name):
-    try:
-        with open(os.path.join(LOG_DIR, log_name), 'w') as f:
-            subprocess.run(command, shell=True, check=True, stdout=f, stderr=subprocess.STDOUT)
-        messagebox.showinfo("Success", f"{log_name} completed!")
-    except subprocess.CalledProcessError:
-        messagebox.showerror("Error", f"{log_name} failed!")
+# --- Widgets ---
+title = tk.Label(root, text="PC Maintenance Buddy", font=("Segoe UI", 16, "bold"))
+title.pack(pady=10)
+
+status_label = tk.Label(root, text="", fg="gray")
+status_label.pack()
+
+progress = ttk.Progressbar(root, mode="indeterminate")
+progress.pack(fill="x", padx=20, pady=5)
+
+log_display = tk.Text(root, height=15, width=60, wrap=tk.WORD, bg="#f9f9f9", relief="sunken")
+log_display.pack(padx=10, pady=10)
+log_display.insert("end", "Ready to clean house.\n")
+log_display.config(state="disabled")
+
+button_frame = tk.Frame(root)
+button_frame.pack(pady=5)
+
+def log_message(message):
+    log_display.config(state="normal")
+    log_display.insert("end", f"{message}\n")
+    log_display.see("end")
+    log_display.config(state="disabled")
+
+def run_task(command, label, log_file=None):
+    def task():
+        status_label.config(text=f"{label} running...")
+        progress.start()
+        for btn in buttons:
+            btn.config(state="disabled")
+        log_message(f"▶ {label} started...")
+
+        try:
+            result = subprocess.run(command, shell=True, capture_output=True, text=True)
+            if log_file:
+                with open(os.path.join(LOG_DIR, log_file), "w", encoding="utf-8") as f:
+                    f.write(result.stdout)
+            log_message(result.stdout.strip())
+            log_message(f"✅ {label} completed.\n")
+        except Exception as e:
+            log_message(f"❌ Error: {str(e)}")
+        finally:
+            progress.stop()
+            status_label.config(text="Idle")
+            for btn in buttons:
+                btn.config(state="normal")
+
+    threading.Thread(target=task).start()
+
+# --- Commands ---
+buttons = []
 
 def sfc_scan():
-    run_command("sfc /scannow", "sfc_log.txt")
+    run_task("sfc /scannow", "SFC Scan", "sfc_log.txt")
 
 def dism_restore():
-    run_command("DISM /Online /Cleanup-Image /RestoreHealth", "dism_log.txt")
+    run_task("DISM /Online /Cleanup-Image /RestoreHealth", "DISM Health Restore", "dism_log.txt")
 
-def clean_temp():
-    temp = os.environ['TEMP']
-    count = 0
-    for root, dirs, files in os.walk(temp):
-        for name in files:
-            try:
-                os.remove(os.path.join(root, name))
-                count += 1
-            except:
-                continue
-    messagebox.showinfo("Temp Cleanup", f"Deleted {count} temp files.")
+def clear_temp():
+    def task():
+        status_label.config(text="Clearing Temp Files...")
+        progress.start()
+        for btn in buttons:
+            btn.config(state="disabled")
+        temp_path = os.environ['TEMP']
+        count = 0
+        for root_, dirs, files in os.walk(temp_path):
+            for name in files:
+                try:
+                    os.remove(os.path.join(root_, name))
+                    count += 1
+                except:
+                    pass
+        log_message(f"🧹 Cleared {count} temp files.")
+        status_label.config(text="Idle")
+        progress.stop()
+        for btn in buttons:
+            btn.config(state="normal")
+    threading.Thread(target=task).start()
 
 def disk_cleanup():
-    subprocess.run("cleanmgr", shell=True)
+    run_task("cleanmgr", "Disk Cleanup")
 
-def defrag():
-    run_command("defrag C: /O", "defrag_log.txt")
+def defrag_drive():
+    run_task("defrag C: /O", "Drive Optimization", "defrag_log.txt")
 
-def open_logs():
-    os.startfile(LOG_DIR)
+# --- Buttons ---
+btn_texts = [
+    ("Run SFC Scan", sfc_scan),
+    ("Run DISM Health Restore", dism_restore),
+    ("Clear Temp Files", clear_temp),
+    ("Run Disk Cleanup", disk_cleanup),
+    ("Defrag C: Drive", defrag_drive)
+]
 
-# GUI Setup
-root = tk.Tk()
-root.title("PC Maintenance Buddy")
-root.geometry("300x350")
-root.resizable(False, False)
+for txt, cmd in btn_texts:
+    b = tk.Button(button_frame, text=txt, width=30, command=cmd)
+    b.pack(pady=2)
+    buttons.append(b)
 
-tk.Label(root, text="Pick a task:", font=("Segoe UI", 14)).pack(pady=10)
-
-tk.Button(root, text="Run SFC Scan", command=sfc_scan).pack(pady=5)
-tk.Button(root, text="Run DISM Health Restore", command=dism_restore).pack(pady=5)
-tk.Button(root, text="Clear Temp Files", command=clean_temp).pack(pady=5)
-tk.Button(root, text="Run Disk Cleanup", command=disk_cleanup).pack(pady=5)
-tk.Button(root, text="Defrag C: Drive", command=defrag).pack(pady=5)
-tk.Button(root, text="Open Logs Folder", command=open_logs).pack(pady=10)
-
-tk.Label(root, text="Logs saved in: /logs", font=("Segoe UI", 8)).pack()
-
+# --- Main Loop ---
 root.mainloop()
