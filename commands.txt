@@ -1,2 +1,1 @@
-pip install pyinstaller
 pyinstaller --onefile --windowed script.py
