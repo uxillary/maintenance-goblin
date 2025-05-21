@@ -1,5 +1,5 @@
 
-Invoking retrim on (C:)...
+Invoking retrim on OS (C:)...
 
 
 
@@ -9,9 +9,9 @@ Post Defragmentation Report:
 
 
 	Volume Information:
-		Volume size                 = 464.90 GB
-		Free space                  = 35.03 GB
+		Volume size                 = 456.80 GB
+		Free space                  = 307.67 GB
 
 
 	Retrim:
-		Total space trimmed         = 38.56 GB
+		Total space trimmed         = 315.61 GB
