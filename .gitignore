@@ -1,6 +1,20 @@
-dist/logs/defrag_log.txt
-dist/logs/dism_log.txt
-dist/logs/sfc_log.txt
-dist/logs/dism_log.txt
-dist/logs/sfc_log.txt
-dist/logs/defrag_log.txt
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Logs and local data
+logs/
+*.log
+
+# Build directories
+build/
+dist/
+
+# Misc
+*.spec
+.DS_Store
