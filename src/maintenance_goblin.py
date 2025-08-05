@@ -1,36 +1,64 @@
 """Maintenance Goblin
 =====================
 
-A Windows maintenance utility with a playful personality. This module
-contains the core logic and GUI for the Maintenance Goblin application.
-
-It currently exposes a Tk-based interface styled with ``ttkbootstrap``.
-Future versions will add a dedicated command line interface and advanced
-packaging to distribute the goblin more easily.
+A playful Windows maintenance utility with a cheeky personality.  This
+module contains the core logic and GUI for the Maintenance Goblin
+application.  It now offers a more featureful interface with task
+selection, system information, log exporting and a lightweight testing
+mode.
 """
 
 from __future__ import annotations
 
+import argparse
 import ctypes
+import datetime as dt
 import os
+import platform
+import random
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
-from tkinter import ttk
+from dataclasses import dataclass
+from typing import Callable, Dict, Optional
 
+import psutil
 import ttkbootstrap as ttkb
+from ttkbootstrap import ttk
+from ttkbootstrap.scrolled import ScrolledText
 
-__all__ = [
-    "__version__",
-    "main",
-]
+__all__ = ["__version__", "main"]
+
 
 # Semantic version of the application
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 APP_NAME = "Maintenance Goblin"
-LOG_DIR = os.path.join(os.getcwd(), "logs")
+BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
+LOG_DIR = os.path.join(os.path.expanduser("~"), ".maintenance_goblin_logs")
+
+TEST_MODE = False
+
+# Fun phrases displayed while tasks are running
+PHRASES = [
+    "Goblin rummages through bits...",
+    "Goblin sharpens tiny broom...",
+    "Goblin mutters incantations...",
+    "Goblin dances around cache fires...",
+]
+
+
+@dataclass
+class Task:
+    """Container describing an executable task."""
+
+    label: str
+    command: Optional[str] = None
+    log_file: Optional[str] = None
+    func: Optional[Callable[[tk.Text], None]] = None
+    parser: Optional[Callable[[str], str]] = None
 
 
 def is_admin() -> bool:
@@ -38,14 +66,14 @@ def is_admin() -> bool:
 
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except Exception:
+    except Exception:  # pragma: no cover - platform specific
         return False
 
 
 def elevate() -> None:
     """Restart the script with administrative privileges if required."""
 
-    if not is_admin():
+    if not is_admin():  # pragma: no cover - platform specific
         ctypes.windll.shell32.ShellExecuteW(
             None, "runas", sys.executable, " ".join(sys.argv), None, 1
         )
@@ -61,37 +89,38 @@ def log_message(widget: tk.Text, message: str) -> None:
     widget.configure(state="disabled")
 
 
-def run_task(
-    command: str,
-    label: str,
-    log_widget: tk.Text,
-    log_file: str | None = None,
-) -> None:
-    """Execute ``command`` and display output in ``log_widget``.
+# ---------------------------------------------------------------------------
+# Task helpers
+# ---------------------------------------------------------------------------
 
-    Parameters
-    ----------
-    command:
-        The shell command to execute.
-    label:
-        Human friendly description of the command.
-    log_widget:
-        ``tk.Text`` widget used for displaying output.
-    log_file:
-        Optional file name to save the command's ``stdout`` to ``LOG_DIR``.
-    """
 
-    log_message(log_widget, f"\n▶ {label} started...")
-    try:
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-        if log_file:
-            os.makedirs(LOG_DIR, exist_ok=True)
-            with open(os.path.join(LOG_DIR, log_file), "w", encoding="utf-8") as fh:
-                fh.write(result.stdout)
-        log_message(log_widget, result.stdout.strip() or "[No Output]")
-        log_message(log_widget, f"✅ {label} completed.")
-    except Exception as exc:  # pragma: no cover - defensive
-        log_message(log_widget, f"❌ Error during {label}: {exc}")
+def parse_sfc(output: str) -> str:
+    """Return a short status message based on ``sfc`` output."""
+
+    lower = output.lower()
+    if "no integrity violations" in lower:
+        return "SFC: No integrity violations found."
+    if "successfully repaired" in lower:
+        return "SFC: Corrupted files repaired."
+    return "SFC: Review log for details."
+
+
+def parse_dism(output: str) -> str:
+    """Return a short status message based on ``dism`` output."""
+
+    lower = output.lower()
+    if "restore operation completed successfully" in lower:
+        return "DISM: Restore operation completed successfully."
+    return "DISM: Review log for details."
+
+
+def parse_chkdsk(output: str) -> str:
+    """Return a short status message based on ``chkdsk`` output."""
+
+    lower = output.lower()
+    if "found no problems" in lower or "no problems found" in lower:
+        return "CHKDSK: No problems found."
+    return "CHKDSK: Issues detected. Review log."
 
 
 def clear_temp(log_widget: tk.Text) -> None:
@@ -109,87 +138,251 @@ def clear_temp(log_widget: tk.Text) -> None:
     log_message(log_widget, f"🧹 Cleared {count} temp files.")
 
 
-def run_all_tasks(ui: dict[str, tk.Widget]) -> None:
-    """Execute the full suite of maintenance tasks."""
+TASKS: list[Task] = [
+    Task(
+        "SFC Scan",
+        "sfc /scannow",
+        "sfc_log.txt",
+        parser=parse_sfc,
+    ),
+    Task(
+        "DISM Health Restore",
+        "DISM /Online /Cleanup-Image /RestoreHealth",
+        "dism_log.txt",
+        parser=parse_dism,
+    ),
+    Task("Check Disk", "chkdsk C:", "chkdsk_log.txt", parser=parse_chkdsk),
+    Task("Clear Temp", func=clear_temp),
+    Task("Disk Cleanup", "cleanmgr"),
+    Task("Drive Optimization", "defrag C: /O", "defrag_log.txt"),
+]
 
-    def task() -> None:
-        ui["status"].configure(text="Goblin working...")
-        ui["progress"].start()
-        ui["button"].configure(state="disabled")
 
-        run_task(
-            "sfc /scannow",
-            "SFC Scan",
-            ui["log"],
-            "sfc_log.txt",
-        )
-        run_task(
-            "DISM /Online /Cleanup-Image /RestoreHealth",
-            "DISM Health Restore",
-            ui["log"],
-            "dism_log.txt",
-        )
-        clear_temp(ui["log"])
-        run_task("cleanmgr", "Disk Cleanup", ui["log"])
-        run_task(
-            "defrag C: /O",
-            "Drive Optimization",
-            ui["log"],
-            "defrag_log.txt",
-        )
+def run_task(task: Task, ui: Dict[str, tk.Widget]) -> None:
+    """Execute ``task`` and display output in the log widget."""
 
-        ui["progress"].stop()
+    log_widget: tk.Text = ui["log"]
+    log_message(log_widget, f"\n▶ {task.label} started...")
+
+    if TEST_MODE:
+        # Simulated output for demonstration or tests
+        time.sleep(0.2)
+        fake_output = f"[Simulated output for {task.label}]"
+        if task.parser:
+            log_message(log_widget, task.parser(fake_output))
+        else:
+            log_message(log_widget, fake_output)
+        log_message(log_widget, f"✅ {task.label} completed.")
+        return
+
+    if task.func:
+        task.func(log_widget)
+        log_message(log_widget, f"✅ {task.label} completed.")
+        return
+
+    try:
+        result = subprocess.run(
+            task.command, shell=True, capture_output=True, text=True
+        )
+        if task.log_file:
+            os.makedirs(LOG_DIR, exist_ok=True)
+            with open(
+                os.path.join(LOG_DIR, task.log_file), "w", encoding="utf-8"
+            ) as fh:
+                fh.write(result.stdout)
+        if task.parser:
+            log_message(log_widget, task.parser(result.stdout))
+        else:
+            log_message(log_widget, result.stdout.strip() or "[No Output]")
+        log_message(log_widget, f"✅ {task.label} completed.")
+    except Exception as exc:  # pragma: no cover - defensive
+        log_message(log_widget, f"❌ Error during {task.label}: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# UI helpers
+# ---------------------------------------------------------------------------
+
+
+def animate_status(label: ttk.Label, stop_event: threading.Event) -> None:
+    """Rotate whimsical phrases on ``label`` until ``stop_event`` is set."""
+
+    while not stop_event.is_set():
+        label.configure(text=random.choice(PHRASES))
+        time.sleep(1.5)
+
+
+def toggle_theme(style: ttkb.Style) -> None:
+    """Switch between a light and dark theme."""
+
+    current = style.theme_use()
+    style.theme_use("flatly" if current == "darkly" else "darkly")
+
+
+def get_system_info() -> dict[str, str]:
+    """Return CPU, RAM and OS information."""
+
+    return {
+        "cpu": f"CPU: {psutil.cpu_percent(interval=None)}%",
+        "ram": f"RAM: {psutil.virtual_memory().percent}%",
+        "os": f"OS: {platform.platform()}",
+    }
+
+
+def update_system_info(ui: Dict[str, tk.Widget]) -> None:
+    """Refresh the system information labels periodically."""
+
+    info = get_system_info()
+    ui["cpu_var"].set(info["cpu"])
+    ui["ram_var"].set(info["ram"])
+    # OS generally does not change, set once
+    if not ui["os_var"].get():
+        ui["os_var"].set(info["os"])
+    ui["root"].after(2000, lambda: update_system_info(ui))
+
+
+def toggle_logs(ui: Dict[str, tk.Widget]) -> None:
+    """Show or hide the log tab in the notebook."""
+
+    nb: ttk.Notebook = ui["notebook"]
+    tab_id = ui["log_tab"]
+    state = nb.tab(tab_id, "state")
+    nb.tab(tab_id, state="hidden" if state == "normal" else "normal")
+
+
+def export_report(log_widget: tk.Text) -> None:
+    """Save the full log output to a timestamped ``.txt`` file."""
+
+    os.makedirs(LOG_DIR, exist_ok=True)
+    text = log_widget.get("1.0", "end").strip()
+    if not text:
+        return
+    ts = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = os.path.join(LOG_DIR, f"report_{ts}.txt")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    log_message(log_widget, f"Report exported to {path}")
+
+
+def run_selected_tasks(ui: Dict[str, tk.Widget]) -> None:
+    """Run the tasks selected in the menu."""
+
+    selected = [t for t in TASKS if ui["task_vars"][t.label].get()]
+    if not selected:
+        return
+
+    ui["run_button"].configure(state="disabled")
+    ui["progress"]["maximum"] = len(selected)
+    ui["progress"]["value"] = 0
+
+    stop_event = threading.Event()
+    threading.Thread(
+        target=animate_status, args=(ui["status"], stop_event), daemon=True
+    ).start()
+
+    before = psutil.disk_usage("C:\\").free if not TEST_MODE else 0
+
+    def worker() -> None:
+        for task in selected:
+            run_task(task, ui)
+            ui["progress"]["value"] += 1
+        after = psutil.disk_usage("C:\\").free if not TEST_MODE else 0
+        diff = (after - before) / (1024 ** 3)
+        log_message(ui["log"], f"Free space change: {diff:.2f} GiB")
+        stop_event.set()
         ui["status"].configure(text="Goblin rests.")
-        ui["button"].configure(state="normal")
-        log_message(
-            ui["log"],
-            "\n👺 Goblin finished his chores. You may sacrifice snacks now.",
-        )
+        ui["run_button"].configure(state="normal")
 
-    threading.Thread(target=task, daemon=True).start()
+    threading.Thread(target=worker, daemon=True).start()
 
 
 def create_gui() -> ttkb.Window:
     """Create and return the main application window."""
 
-    root = ttkb.Window(title=APP_NAME, themename="flatly")
-    root.geometry("520x480")
-    root.resizable(False, False)
+    style = ttkb.Style("darkly")
+    root = ttkb.Window(title=APP_NAME, themename=style.theme_use())
+    root.minsize(600, 400)
 
-    ui: dict[str, tk.Widget] = {}
-    ttk.Label(root, text=APP_NAME, font=("Segoe UI", 16, "bold")).pack(pady=10)
+    ui: Dict[str, tk.Widget] = {"root": root}
 
-    ui["status"] = ttk.Label(root, text="Idle", foreground="gray")
+    ttk.Label(root, text=APP_NAME, font=("Segoe UI", 16, "bold")).pack(pady=5)
+
+    ui["status"] = ttk.Label(root, text="Idle", bootstyle="secondary")
     ui["status"].pack()
 
-    ui["progress"] = ttk.Progressbar(root, mode="indeterminate")
-    ui["progress"].pack(fill="x", padx=20, pady=5)
+    ui["progress"] = ttk.Progressbar(root, mode="determinate")
+    ui["progress"].pack(fill="x", padx=10, pady=5)
 
-    ui["log"] = tk.Text(
-        root,
-        height=15,
-        width=65,
-        wrap="word",
-        bg="#f9f9f9",
-        relief="sunken",
-    )
-    ui["log"].pack(padx=10, pady=10)
-    ui["log"].insert("end", "👺 The Maintenance Goblin is snoozing.\n")
-    ui["log"].configure(state="disabled")
+    nb = ttk.Notebook(root)
+    nb.pack(fill="both", expand=True, padx=10, pady=5)
+    ui["notebook"] = nb
 
-    ui["button"] = ttk.Button(
-        root,
-        text="🧼 Summon the Maintenance Goblin",
-        command=lambda: run_all_tasks(ui),
-        bootstyle="success",
+    # System info tab
+    sys_tab = ttk.Frame(nb)
+    nb.add(sys_tab, text="System Info")
+    cpu_var = tk.StringVar()
+    ram_var = tk.StringVar()
+    os_var = tk.StringVar()
+    ttk.Label(sys_tab, textvariable=cpu_var).pack(anchor="w")
+    ttk.Label(sys_tab, textvariable=ram_var).pack(anchor="w")
+    ttk.Label(sys_tab, textvariable=os_var).pack(anchor="w")
+    ui.update({"cpu_var": cpu_var, "ram_var": ram_var, "os_var": os_var})
+
+    # Log tab
+    log_tab = ttk.Frame(nb)
+    nb.add(log_tab, text="Logs")
+    log_widget = ScrolledText(log_tab, wrap="word")
+    log_widget.pack(fill="both", expand=True)
+    log_widget.insert("end", "👺 The Maintenance Goblin is snoozing.\n")
+    log_widget.configure(state="disabled")
+    ui["log"] = log_widget
+    ui["log_tab"] = log_tab
+
+    buttons = ttk.Frame(root)
+    buttons.pack(pady=5)
+
+    task_vars: Dict[str, tk.BooleanVar] = {}
+    task_menu_btn = ttk.Menubutton(buttons, text="Tasks")
+    task_menu = tk.Menu(task_menu_btn, tearoff=False)
+    task_menu_btn["menu"] = task_menu
+    for t in TASKS:
+        var = tk.BooleanVar(value=True)
+        task_menu.add_checkbutton(label=t.label, variable=var)
+        task_vars[t.label] = var
+    task_menu_btn.pack(side="left", padx=5)
+    ui["task_vars"] = task_vars
+
+    run_btn = ttk.Button(
+        buttons, text="Run Selected", command=lambda: run_selected_tasks(ui), bootstyle="success"
     )
-    ui["button"].pack(pady=10)
+    run_btn.pack(side="left", padx=5)
+    ui["run_button"] = run_btn
+
+    ttk.Button(
+        buttons, text="Toggle Logs", command=lambda: toggle_logs(ui)
+    ).pack(side="left", padx=5)
+    ttk.Button(
+        buttons, text="Export Report", command=lambda: export_report(ui["log"])
+    ).pack(side="left", padx=5)
+    ttk.Button(
+        buttons, text="Toggle Theme", command=lambda: toggle_theme(style)
+    ).pack(side="left", padx=5)
+
+    update_system_info(ui)
 
     return root
 
 
 def main() -> None:
     """Entry point for running the GUI application."""
+
+    parser = argparse.ArgumentParser(description=APP_NAME)
+    parser.add_argument(
+        "--test", action="store_true", help="Run in test mode without making changes"
+    )
+    args = parser.parse_args()
+    global TEST_MODE
+    TEST_MODE = args.test
 
     os.makedirs(LOG_DIR, exist_ok=True)
     elevate()
@@ -199,3 +392,4 @@ def main() -> None:
 
 if __name__ == "__main__":  # pragma: no cover
     main()
+
