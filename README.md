@@ -47,6 +47,15 @@ Run all tasks without the GUI:
 python src/maintenance_goblin.py --silent
 ```
 
+### Command-Line Mode
+Run specific tasks directly from the terminal:
+```bash
+python src/maintenance_goblin.py --cli --run-all
+python src/maintenance_goblin.py --cli --sfc-only --export-log=output.txt
+python src/maintenance_goblin.py --cli --cleanup-only
+```
+The `--export-log` option saves console output to the given file.
+
 ## Screenshot
 Screenshot coming soon.
 
