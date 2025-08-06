@@ -18,3 +18,4 @@ dist/
 # Misc
 *.spec
 .DS_Store
+summaries.json
