@@ -8,6 +8,7 @@ All notable changes to this project will be documented here.
 - Menu to run individual tasks, log exporting and toggleable logs.
 - Additional maintenance actions including CHKDSK and disk space reporting.
 - Optional `--test`, `--debug` and `--silent` modes for development and automation.
+- Command-line interface with task selection and log export.
 
 ## [0.1.0] - 2024-xx-xx
 ### Added

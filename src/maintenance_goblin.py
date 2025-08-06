@@ -227,6 +227,35 @@ def run_tasks_silent() -> None:
         run_task(task, ui)
 
 
+class CLILogger:
+    """Lightweight logger used for CLI mode output."""
+
+    def __init__(self, path: Optional[str] = None) -> None:
+        self.path = path
+        if self.path:
+            os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+
+    def configure(self, **_: object) -> None:  # pragma: no cover - trivial
+        """Compatibility shim for ``tk.Text`` widget."""
+
+    def insert(self, _index: str, message: str) -> None:
+        print(message, end="")
+        if self.path:
+            with open(self.path, "a", encoding="utf-8") as fh:
+                fh.write(message)
+
+    def see(self, *args: object, **kwargs: object) -> None:  # pragma: no cover - noop
+        pass
+
+
+def run_tasks_cli(tasks: list[Task], export_log: Optional[str] = None) -> None:
+    """Run ``tasks`` in a simple command-line interface."""
+
+    ui: Dict[str, tk.Widget] = {"log": CLILogger(export_log)}
+    for task in tasks:
+        run_task(task, ui)
+
+
 # ---------------------------------------------------------------------------
 # UI helpers
 # ---------------------------------------------------------------------------
@@ -414,6 +443,21 @@ def main() -> None:
     parser.add_argument(
         "--silent", action="store_true", help="Run all tasks without the GUI"
     )
+    parser.add_argument(
+        "--cli", action="store_true", help="Run in command-line mode"
+    )
+    parser.add_argument(
+        "--run-all", action="store_true", help="Run all tasks in CLI mode"
+    )
+    parser.add_argument(
+        "--sfc-only", action="store_true", help="Run only the SFC scan"
+    )
+    parser.add_argument(
+        "--cleanup-only", action="store_true", help="Run cleanup tasks only"
+    )
+    parser.add_argument(
+        "--export-log", metavar="PATH", help="Save CLI log output to PATH"
+    )
     args = parser.parse_args()
     global TEST_MODE, DEBUG_MODE, SILENT_MODE
     TEST_MODE = args.test
@@ -422,6 +466,23 @@ def main() -> None:
 
     os.makedirs(APP_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
+    if args.cli:
+        elevate()
+        if args.run_all or (not args.sfc_only and not args.cleanup_only):
+            selected = TASKS
+        elif args.sfc_only:
+            selected = [t for t in TASKS if t.label == "SFC Scan"]
+        elif args.cleanup_only:
+            selected = [
+                t
+                for t in TASKS
+                if t.label in {"Clear Temp", "Disk Cleanup", "Drive Optimization"}
+            ]
+        else:
+            selected = TASKS
+        run_tasks_cli(selected, args.export_log)
+        return
+
     if SILENT_MODE:
         elevate()
         run_tasks_silent()
