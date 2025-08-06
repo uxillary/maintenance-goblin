@@ -33,13 +33,20 @@ __all__ = ["__version__", "main"]
 
 
 # Semantic version of the application
-__version__ = "0.2.0"
+__version__ = "0.1.0"
 
 APP_NAME = "Maintenance Goblin"
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
-LOG_DIR = os.path.join(os.path.expanduser("~"), ".maintenance_goblin_logs")
+
+# Resolve user-specific application directory
+APP_DIR = os.path.join(
+    os.getenv("APPDATA", os.path.expanduser("~")), "MaintenanceGoblin"
+)
+LOG_DIR = os.path.join(APP_DIR, "logs")
 
 TEST_MODE = False
+DEBUG_MODE = False
+SILENT_MODE = False
 
 # Fun phrases displayed while tasks are running
 PHRASES = [
@@ -72,7 +79,8 @@ def is_admin() -> bool:
 
 def elevate() -> None:
     """Restart the script with administrative privileges if required."""
-
+    if os.name != "nt":
+        return
     if not is_admin():  # pragma: no cover - platform specific
         ctypes.windll.shell32.ShellExecuteW(
             None, "runas", sys.executable, " ".join(sys.argv), None, 1
@@ -81,8 +89,10 @@ def elevate() -> None:
 
 
 def log_message(widget: tk.Text, message: str) -> None:
-    """Append ``message`` to ``widget`` and keep the widget read-only."""
+    """Append ``message`` to ``widget`` and optionally echo to console."""
 
+    if DEBUG_MODE:
+        print(message)
     widget.configure(state="normal")
     widget.insert("end", f"{message}\n")
     widget.see("end")
@@ -197,6 +207,24 @@ def run_task(task: Task, ui: Dict[str, tk.Widget]) -> None:
         log_message(log_widget, f"✅ {task.label} completed.")
     except Exception as exc:  # pragma: no cover - defensive
         log_message(log_widget, f"❌ Error during {task.label}: {exc}")
+
+
+def run_tasks_silent() -> None:
+    """Run all tasks sequentially without launching the GUI."""
+
+    class DummyWidget:
+        def configure(self, **_: object) -> None:
+            pass
+
+        def insert(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def see(self, *args: object, **kwargs: object) -> None:
+            pass
+
+    ui: Dict[str, tk.Widget] = {"log": DummyWidget()}
+    for task in TASKS:
+        run_task(task, ui)
 
 
 # ---------------------------------------------------------------------------
@@ -380,11 +408,25 @@ def main() -> None:
     parser.add_argument(
         "--test", action="store_true", help="Run in test mode without making changes"
     )
+    parser.add_argument(
+        "--debug", action="store_true", help="Print debug logs to the console"
+    )
+    parser.add_argument(
+        "--silent", action="store_true", help="Run all tasks without the GUI"
+    )
     args = parser.parse_args()
-    global TEST_MODE
+    global TEST_MODE, DEBUG_MODE, SILENT_MODE
     TEST_MODE = args.test
+    DEBUG_MODE = args.debug
+    SILENT_MODE = args.silent
 
+    os.makedirs(APP_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
+    if SILENT_MODE:
+        elevate()
+        run_tasks_silent()
+        return
+
     elevate()
     root = create_gui()
     root.mainloop()

@@ -14,6 +14,13 @@ application.
 - Exportable reports and an optional ``--test`` mode for demos
 
 ## Installation
+### Windows Executable
+Download `MaintenanceGoblin.exe` from the
+[releases](https://github.com/yourname/maintenance-goblin/releases) page and
+run it. All logs and configuration files are stored under
+`%APPDATA%/MaintenanceGoblin`.
+
+### From Source
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourname/maintenance-goblin.git
@@ -30,8 +37,24 @@ Execute the application with Python:
 python src/maintenance_goblin.py
 ```
 
+### Debug & Silent Modes
+Run with extra console output:
+```bash
+python src/maintenance_goblin.py --debug
+```
+Run all tasks without the GUI:
+```bash
+python src/maintenance_goblin.py --silent
+```
+
+## Screenshot
+Screenshot coming soon.
+
+## Changelog
+See [CHANGELOG.md](CHANGELOG.md) for a complete history of changes.
+
 ## Version
-Current release: **v0.2.0**
+Current release: **v0.1.0**
 
 ## Contributing
 Contributions are welcome! Please open an issue or submit a pull request to

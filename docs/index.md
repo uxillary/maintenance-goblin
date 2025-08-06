@@ -1,7 +1,18 @@
-# Maintenance Goblin Documentation
+# Maintenance Goblin
 
-Welcome to the early documentation for **Maintenance Goblin**. The project is
-growing into a friendly desktop companion for routine Windows maintenance.
+**Maintenance Goblin** is a playful desktop companion that bundles common
+Windows clean-up commands into a friendly interface.
+
+## Features
+- SFC, DISM and CHKDSK checks
+- Temp file cleanup and drive optimisation
+- Toggleable logs and exportable reports
+
+## Download
+[Download MaintenanceGoblin.exe](https://github.com/yourname/maintenance-goblin/releases/latest/download/MaintenanceGoblin.exe)
+
+## Screenshot
+Screenshot coming soon.
 
 ## Getting Started
 Run the application with Python:
