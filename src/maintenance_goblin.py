@@ -355,8 +355,10 @@ def show_update_dialog(ui: Dict[str, tk.Widget], latest: str, notes: str, url: s
 
 def show_splash() -> None:
     """Display a simple splash screen on startup."""
-
-    splash = tk.Tk()
+    try:
+        splash = tk.Tk()
+    except tk.TclError:  # pragma: no cover - headless environments
+        return
     splash.overrideredirect(True)
     ttk.Label(splash, text="Summoning Goblin...", padding=20).pack()
     splash.after(1500, splash.destroy)
