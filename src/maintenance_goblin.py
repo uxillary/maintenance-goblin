@@ -564,7 +564,7 @@ def main() -> None:
     if not SILENT_MODE:
         show_splash()
 
-    root = ttk.Window(title=APP_NAME, themename="darkly")
+    root = ttkb.Window(title=APP_NAME, themename="darkly")
     create_gui(root)
     root.mainloop()
 
