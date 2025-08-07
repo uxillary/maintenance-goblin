@@ -90,10 +90,12 @@ def log_message(widget: tk.Text, message: str) -> None:
 
     if DEBUG_MODE:
         print(message)
-    widget.configure(state="normal")
-    widget.insert("end", f"{message}\n")
-    widget.see("end")
-    widget.configure(state="disabled")
+
+    target = getattr(widget, "text", widget)
+    target.configure(state="normal")
+    target.insert("end", f"{message}\n")
+    target.see("end")
+    target.configure(state="disabled")
 
 
 # ---------------------------------------------------------------------------
@@ -334,8 +336,8 @@ def show_update_dialog(ui: Dict[str, tk.Widget], latest: str, notes: str, url: s
         padx=10, pady=10
     )
     txt = ScrolledText(win, width=60, height=10)
-    txt.insert("end", notes or "No release notes")
-    txt.configure(state="disabled")
+    txt.text.insert("end", notes or "No release notes")
+    txt.text.configure(state="disabled")
     txt.pack(padx=10, pady=5)
     ttk.Button(win, text="Download", command=lambda: updater.open_download(url)).pack(
         pady=5
@@ -422,9 +424,10 @@ def create_gui(root: ttkb.Window) -> None:
     nb.add(log_tab, text="Logs")
     log_widget = ScrolledText(log_tab, wrap="word")
     log_widget.pack(fill="both", expand=True)
-    log_widget.insert("end", "👺 The Maintenance Goblin is snoozing.\n")
-    log_widget.configure(state="disabled")
-    ui["log"] = log_widget
+    log_text = log_widget.text
+    log_text.insert("end", "👺 The Maintenance Goblin is snoozing.\n")
+    log_text.configure(state="disabled")
+    ui["log"] = log_text
     ui["log_tab"] = log_tab
 
     buttons = ttk.Frame(root)
