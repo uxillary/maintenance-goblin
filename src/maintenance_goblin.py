@@ -29,11 +29,17 @@ import ttkbootstrap as ttkb
 from ttkbootstrap import ttk
 from ttkbootstrap.scrolled import ScrolledText
 
+import achievements
+import autostart
+import log_delivery
+import updater
+from config_manager import load_json, save_json
+
 __all__ = ["__version__", "main"]
 
 
 # Semantic version of the application
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 APP_NAME = "Maintenance Goblin"
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
@@ -43,6 +49,8 @@ APP_DIR = os.path.join(
     os.getenv("APPDATA", os.path.expanduser("~")), "MaintenanceGoblin"
 )
 LOG_DIR = os.path.join(APP_DIR, "logs")
+
+SETTINGS = load_json("settings.json", {"autostart": False, "remote_log": {"url": ""}})
 
 TEST_MODE = False
 DEBUG_MODE = False
@@ -183,11 +191,15 @@ def run_task(task: Task, ui: Dict[str, tk.Widget]) -> None:
         else:
             log_message(log_widget, fake_output)
         log_message(log_widget, f"✅ {task.label} completed.")
+        for name in achievements.record(task.label):
+            log_message(log_widget, f"Achievement unlocked: {name}")
         return
 
     if task.func:
         task.func(log_widget)
         log_message(log_widget, f"✅ {task.label} completed.")
+        for name in achievements.record(task.label):
+            log_message(log_widget, f"Achievement unlocked: {name}")
         return
 
     try:
@@ -205,6 +217,8 @@ def run_task(task: Task, ui: Dict[str, tk.Widget]) -> None:
         else:
             log_message(log_widget, result.stdout.strip() or "[No Output]")
         log_message(log_widget, f"✅ {task.label} completed.")
+        for name in achievements.record(task.label):
+            log_message(log_widget, f"Achievement unlocked: {name}")
     except Exception as exc:  # pragma: no cover - defensive
         log_message(log_widget, f"❌ Error during {task.label}: {exc}")
 
@@ -319,6 +333,34 @@ def export_report(log_widget: tk.Text) -> None:
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(text)
     log_message(log_widget, f"Report exported to {path}")
+    log_delivery.send_log(text)
+
+
+def show_update_dialog(ui: Dict[str, tk.Widget], latest: str, notes: str, url: str) -> None:
+    """Display release notes and a download link for an update."""
+
+    win = tk.Toplevel(ui["root"])
+    win.title("Update Available")
+    ttk.Label(win, text=f"Version {latest} is available", font=("Segoe UI", 11, "bold")).pack(
+        padx=10, pady=10
+    )
+    txt = ScrolledText(win, width=60, height=10)
+    txt.insert("end", notes or "No release notes")
+    txt.configure(state="disabled")
+    txt.pack(padx=10, pady=5)
+    ttk.Button(win, text="Download", command=lambda: updater.open_download(url)).pack(
+        pady=5
+    )
+
+
+def show_splash() -> None:
+    """Display a simple splash screen on startup."""
+
+    splash = tk.Tk()
+    splash.overrideredirect(True)
+    ttk.Label(splash, text="Summoning Goblin...", padding=20).pack()
+    splash.after(1500, splash.destroy)
+    splash.mainloop()
 
 
 def run_selected_tasks(ui: Dict[str, tk.Widget]) -> None:
@@ -425,7 +467,33 @@ def create_gui() -> ttkb.Window:
         buttons, text="Toggle Theme", command=lambda: toggle_theme(style)
     ).pack(side="left", padx=5)
 
+    autostart_var = tk.BooleanVar(
+        value=SETTINGS.get("autostart", False) or autostart.is_enabled()
+    )
+
+    def on_autostart() -> None:
+        if autostart_var.get():
+            autostart.enable_autostart()
+        else:
+            autostart.disable_autostart()
+        SETTINGS["autostart"] = autostart_var.get()
+        save_json("settings.json", SETTINGS)
+
+    ttk.Checkbutton(
+        buttons, text="Run at startup", variable=autostart_var, command=on_autostart
+    ).pack(side="left", padx=5)
+    ttk.Button(buttons, text="Gallery", command=lambda: achievements.show_gallery(root)).pack(
+        side="left", padx=5
+    )
+
     update_system_info(ui)
+
+    def update_cb(latest: Optional[str], notes: str, url: str) -> None:
+        if not latest:
+            return
+        root.after(0, lambda: show_update_dialog(ui, latest, notes, url))
+
+    updater.check_async(__version__, update_cb)
 
     return root
 
@@ -489,6 +557,8 @@ def main() -> None:
         return
 
     elevate()
+    if not SILENT_MODE:
+        show_splash()
     root = create_gui()
     root.mainloop()
 
