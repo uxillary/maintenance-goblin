@@ -5,7 +5,7 @@ from __future__ import annotations
 import urllib.request
 from typing import Optional
 
-from .config_manager import load_json
+from config_manager import load_json
 
 SETTINGS_FILE = "settings.json"
 DEFAULT_SETTINGS = {"remote_log": {"url": ""}}

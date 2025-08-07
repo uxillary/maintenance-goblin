@@ -9,7 +9,7 @@ try:  # pragma: no cover - optional
 except Exception:  # pragma: no cover - platform fallback
     winsound = None  # type: ignore
 
-from .config_manager import load_json, save_json
+from config_manager import load_json, save_json
 
 FILE_NAME = "achievements.json"
 DEFAULT_DATA: Dict[str, object] = {

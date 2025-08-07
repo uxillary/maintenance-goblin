@@ -85,17 +85,6 @@ def is_admin() -> bool:
         return False
 
 
-def elevate() -> None:
-    """Restart the script with administrative privileges if required."""
-    if os.name != "nt":
-        return
-    if not is_admin():  # pragma: no cover - platform specific
-        ctypes.windll.shell32.ShellExecuteW(
-            None, "runas", sys.executable, " ".join(sys.argv), None, 1
-        )
-        sys.exit()
-
-
 def log_message(widget: tk.Text, message: str) -> None:
     """Append ``message`` to ``widget`` and optionally echo to console."""
 
@@ -355,10 +344,12 @@ def show_update_dialog(ui: Dict[str, tk.Widget], latest: str, notes: str, url: s
 
 def show_splash() -> None:
     """Display a simple splash screen on startup."""
-
-    splash = tk.Tk()
+    try:
+        splash = tk.Tk()
+    except tk.TclError:  # pragma: no cover - headless environments
+        return
     splash.overrideredirect(True)
-    ttk.Label(splash, text="Summoning Goblin...", padding=20).pack()
+    tk.Label(splash, text="Summoning Goblin...", padx=20, pady=20).pack()
     splash.after(1500, splash.destroy)
     splash.mainloop()
 
@@ -395,11 +386,10 @@ def run_selected_tasks(ui: Dict[str, tk.Widget]) -> None:
     threading.Thread(target=worker, daemon=True).start()
 
 
-def create_gui() -> ttkb.Window:
-    """Create and return the main application window."""
+def create_gui(root: ttkb.Window) -> None:
+    """Populate ``root`` with the application's widgets."""
 
-    style = ttkb.Style("darkly")
-    root = ttkb.Window(title=APP_NAME, themename=style.theme_use())
+    style = root.style
     root.minsize(600, 400)
 
     ui: Dict[str, tk.Widget] = {"root": root}
@@ -495,8 +485,6 @@ def create_gui() -> ttkb.Window:
 
     updater.check_async(__version__, update_cb)
 
-    return root
-
 
 def main() -> None:
     """Entry point for running the GUI application."""
@@ -535,7 +523,12 @@ def main() -> None:
     os.makedirs(APP_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
     if args.cli:
-        elevate()
+        if os.name == "nt" and not is_admin():
+            print("Not admin. Relaunching...")
+            ctypes.windll.shell32.ShellExecuteW(
+                None, "runas", sys.executable, " ".join(sys.argv), None, 1
+            )
+            sys.exit()
         if args.run_all or (not args.sfc_only and not args.cleanup_only):
             selected = TASKS
         elif args.sfc_only:
@@ -552,14 +545,27 @@ def main() -> None:
         return
 
     if SILENT_MODE:
-        elevate()
+        if os.name == "nt" and not is_admin():
+            print("Not admin. Relaunching...")
+            ctypes.windll.shell32.ShellExecuteW(
+                None, "runas", sys.executable, " ".join(sys.argv), None, 1
+            )
+            sys.exit()
         run_tasks_silent()
         return
 
-    elevate()
+    if os.name == "nt" and not is_admin():
+        print("Not admin. Relaunching...")
+        ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", sys.executable, " ".join(sys.argv), None, 1
+        )
+        sys.exit()
+
     if not SILENT_MODE:
         show_splash()
-    root = create_gui()
+
+    root = ttk.Window(title=APP_NAME, themename="darkly")
+    create_gui(root)
     root.mainloop()
 
 
