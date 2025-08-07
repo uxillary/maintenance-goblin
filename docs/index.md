@@ -7,6 +7,10 @@ Windows clean-up commands into a friendly interface.
 - SFC, DISM and CHKDSK checks
 - Temp file cleanup and drive optimisation
 - Toggleable logs and exportable reports
+- Optional run-at-startup toggle
+- Hidden achievement system and gallery
+- Remote log delivery via webhook
+- Automatic update checks against GitHub releases
 
 ## Download
 [Download MaintenanceGoblin.exe](https://github.com/yourname/maintenance-goblin/releases/latest/download/MaintenanceGoblin.exe)
