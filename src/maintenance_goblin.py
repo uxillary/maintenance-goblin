@@ -39,7 +39,7 @@ __all__ = ["__version__", "main"]
 
 
 # Semantic version of the application
-__version__ = "0.2.0"
+__version__ = "0.1.0"
 
 APP_NAME = "Maintenance Goblin"
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
@@ -492,6 +492,13 @@ def create_gui(root: ttkb.Window) -> None:
 def main() -> None:
     """Entry point for running the GUI application."""
 
+    if os.name == "nt" and not is_admin():
+        print("Not admin. Relaunching...")
+        ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", sys.executable, " ".join(sys.argv), None, 1
+        )
+        sys.exit()
+
     parser = argparse.ArgumentParser(description=APP_NAME)
     parser.add_argument(
         "--test", action="store_true", help="Run in test mode without making changes"
@@ -526,12 +533,6 @@ def main() -> None:
     os.makedirs(APP_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
     if args.cli:
-        if os.name == "nt" and not is_admin():
-            print("Not admin. Relaunching...")
-            ctypes.windll.shell32.ShellExecuteW(
-                None, "runas", sys.executable, " ".join(sys.argv), None, 1
-            )
-            sys.exit()
         if args.run_all or (not args.sfc_only and not args.cleanup_only):
             selected = TASKS
         elif args.sfc_only:
@@ -548,26 +549,13 @@ def main() -> None:
         return
 
     if SILENT_MODE:
-        if os.name == "nt" and not is_admin():
-            print("Not admin. Relaunching...")
-            ctypes.windll.shell32.ShellExecuteW(
-                None, "runas", sys.executable, " ".join(sys.argv), None, 1
-            )
-            sys.exit()
         run_tasks_silent()
         return
-
-    if os.name == "nt" and not is_admin():
-        print("Not admin. Relaunching...")
-        ctypes.windll.shell32.ShellExecuteW(
-            None, "runas", sys.executable, " ".join(sys.argv), None, 1
-        )
-        sys.exit()
 
     if not SILENT_MODE:
         show_splash()
 
-    root = ttkb.Window(title=APP_NAME, themename="darkly")
+    root = ttkb.Window(title=APP_NAME, themename="superhero")
     create_gui(root)
     root.mainloop()
 

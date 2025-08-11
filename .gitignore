@@ -1,22 +1,15 @@
-# Python cache and bytecode
-__pycache__/
-*.py[cod]
-
-# Virtual environments
+pycache/
+*.pyc
+*.pyo
+*.pyd
 .venv/
 venv/
-ENV/
+.env
 
-# Logs and local data
-logs/
-*.log
-
-# Build directories
 build/
 dist/
-
-# Misc
 *.spec
+
 .DS_Store
-summaries.json
-src.zip
+Thumbs.db
+.vscode/
