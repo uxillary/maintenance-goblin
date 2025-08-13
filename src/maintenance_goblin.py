@@ -37,6 +37,18 @@ from config_manager import load_json, save_json
 
 __all__ = ["__version__", "main"]
 
+# When packaged with PyInstaller using the ``--windowed`` flag, ``sys.stdout``
+# and ``sys.stderr`` are ``None`` because there is no attached console.  The
+# :mod:`argparse` module expects these streams to be writable when displaying
+# usage or error messages.  If either stream is ``None`` it will raise
+# ``AttributeError`` when attempting to call ``write``.  To avoid crashing when
+# the application is executed as a GUI-only program, provide dummy file objects
+# that safely discard any output.
+if sys.stdout is None:  # pragma: no cover - relies on PyInstaller behaviour
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:  # pragma: no cover - relies on PyInstaller behaviour
+    sys.stderr = open(os.devnull, "w")
+
 
 # Semantic version of the application
 __version__ = "0.1.0"
