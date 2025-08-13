@@ -51,7 +51,7 @@ if sys.stderr is None:  # pragma: no cover - relies on PyInstaller behaviour
 
 
 # Semantic version of the application
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 APP_NAME = "Maintenance Goblin"
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
@@ -506,8 +506,11 @@ def main() -> None:
 
     if os.name == "nt" and not is_admin():
         print("Not admin. Relaunching...")
+        params = subprocess.list2cmdline(
+            sys.argv[1:] if getattr(sys, "frozen", False) else sys.argv
+        )
         ctypes.windll.shell32.ShellExecuteW(
-            None, "runas", sys.executable, " ".join(sys.argv), None, 1
+            None, "runas", sys.executable, params, None, 1
         )
         sys.exit()
 
