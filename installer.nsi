@@ -1,6 +1,6 @@
 ; Maintenance Goblin NSIS installer
 !define APP_NAME "Maintenance Goblin"
-!define APP_VERSION "0.2.0"
+!define APP_VERSION "0.1.2"
 
 OutFile "MaintenanceGoblinSetup.exe"
 InstallDir "$PROGRAMFILES32\Maintenance Goblin"

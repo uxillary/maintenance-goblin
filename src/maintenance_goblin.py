@@ -51,7 +51,7 @@ if sys.stderr is None:  # pragma: no cover - relies on PyInstaller behaviour
 
 
 # Semantic version of the application
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 APP_NAME = "Maintenance Goblin"
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
