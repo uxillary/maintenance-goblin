@@ -1,15 +1,15 @@
 # Maintenance Goblin
 
-A polished Windows desktop utility that runs SFC, DISM, temp cleanup, Disk Cleanup, and defrag — with live logs, progress, and no popups.
+A polished Windows desktop utility that wraps SFC, DISM, temporary file cleanup, Disk Cleanup, and defrag in a single window. Logs stream live with progress indicators and no disruptive pop-ups.
 
 ## Features
-- One-click “Run All Tasks”
+- One-click "Run All Tasks"
 - Live in-app logs and progress
-- Safe admin elevation before GUI
-- Optional CHKDSK (read-only)
-- Exportable report
+- Safe admin elevation before the GUI starts
+- Optional read-only CHKDSK
+- Exportable report of actions taken
 
-## Install (dev)
+## Installation (development)
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
@@ -23,10 +23,11 @@ pyinstaller --onefile --windowed --name "MaintenanceGoblin" ^
   --icon docs/img/goblin.ico src/maintenance_goblin.py
 ```
 
-## Screenshots
+## Documentation
+See the [documentation](docs/index.md) for screenshots and additional details.
 
 ## Contributing
-See CONTRIBUTING.md.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
-MIT
+Licensed under the [MIT License](LICENSE).
