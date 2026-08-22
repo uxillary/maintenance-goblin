@@ -1,0 +1,603 @@
+# Maintenance Goblin — Project Context
+
+## Project Overview
+
+**Maintenance Goblin** is a lightweight Windows desktop utility that makes common Windows maintenance and diagnostic tasks easier to run and understand.
+
+The original project started as a small Python/Tkinter script with buttons for commands such as SFC and DISM. It has since evolved toward a polished, distributable Windows application with a deliberately playful **goblin-themed identity**, while still aiming to feel trustworthy and professional.
+
+The core philosophy is:
+
+> Make legitimate Windows maintenance tools accessible through one friendly interface, provide useful feedback about what is happening, and avoid the misleading "one-click PC optimizer" behaviour common in questionable cleanup software.
+
+The application should favour **built-in Windows functionality, transparency and safety** rather than registry cleaners, fake performance claims, aggressive RAM cleaners, or destructive "optimization".
+
+---
+
+## Current Technology
+
+* Python
+* Tkinter
+* `ttkbootstrap` for the modern GUI
+* `psutil` for system information/statistics
+* PyInstaller for Windows executable builds
+* Git + GitHub for version control
+* GitHub Releases for distribution
+* GitHub Pages/docs planned for the project website/documentation
+* Windows 10/11 is the primary target
+
+Main application entry point:
+
+`src/maintenance_goblin.py`
+
+The project currently builds successfully into:
+
+`MaintenanceGoblin.exe`
+
+---
+
+# Current Functionality
+
+Maintenance Goblin can run several Windows maintenance operations from its GUI.
+
+### System File Checker
+
+Runs:
+
+`SFC /scannow`
+
+Used to detect and repair corrupted protected Windows system files.
+
+### DISM
+
+Runs Windows DISM image health/repair functionality, including:
+
+`DISM /Online /Cleanup-Image /RestoreHealth`
+
+This complements SFC by repairing the underlying Windows component store.
+
+### Temporary File Cleanup
+
+Cleans appropriate temporary files while gracefully handling files that Windows/applications currently have locked.
+
+The UI should report useful statistics such as the number of files removed and, where possible, approximate space recovered.
+
+### Windows Disk Cleanup
+
+Provides access to Windows' built-in disk cleanup functionality rather than implementing an unsafe custom cleaner.
+
+### Drive Optimization
+
+Uses the Windows optimization command.
+
+The application must distinguish conceptually between HDD defragmentation and SSD optimization/TRIM.
+
+It should **never blindly treat SSDs as traditional hard drives requiring defragmentation**.
+
+### CHKDSK
+
+CHKDSK support has been considered/added as a **read-only diagnostic scan**.
+
+Normal automated maintenance should not silently run destructive/fixing variants such as `/f`, `/r`, or `/x`.
+
+If repair functionality is ever exposed, it must clearly explain that the operation may require rebooting or taking the filesystem offline.
+
+---
+
+# Main UX
+
+The original application had individual maintenance buttons.
+
+The preferred experience evolved toward:
+
+**one primary maintenance action → tasks run sequentially → the application explains what is happening.**
+
+The user should never click something and then wonder whether the application has frozen.
+
+The GUI therefore needs:
+
+* Current task
+* Overall progress
+* Running/completed/failed/skipped states
+* In-app feedback
+* Live or progressively updated logs
+* Clear final summary
+* No unnecessary completion popups
+* UI remaining responsive while long commands run
+* Buttons disabled appropriately while conflicting tasks execute
+
+Long-running commands must execute outside Tkinter's main UI thread.
+
+Tkinter widgets themselves should only be updated safely from the UI thread.
+
+---
+
+# Feedback & Statistics
+
+Rather than dumping raw command-line output at the user, Maintenance Goblin should translate results into useful summaries.
+
+Examples:
+
+* SFC: no integrity violations
+* SFC: corruption detected and repaired
+* SFC: corruption detected but some files could not be repaired
+* DISM: component store healthy
+* DISM: repair completed
+* CHKDSK: filesystem healthy
+* CHKDSK: potential errors detected
+* Temporary files removed
+* Approximate storage recovered
+* Free disk space before/after
+* Task duration
+* Total maintenance duration
+
+Raw command output can remain available through an expandable log/debug area.
+
+---
+
+# System Information
+
+The application can/should display useful machine information such as:
+
+* Windows version
+* CPU
+* Installed RAM
+* Current RAM usage
+* System drive
+* Drive capacity
+* Free disk space
+* Drive type where reliably detectable
+* Application version
+* Administrator/elevation state
+
+These statistics should provide context rather than pretending that normal RAM usage is inherently a problem.
+
+Maintenance Goblin should **not implement fake "RAM optimization"**.
+
+---
+
+# Administrator Privileges
+
+Several Windows maintenance commands require elevation.
+
+The application contains administrator detection/elevation logic.
+
+A previous bug caused:
+
+`_tkinter.TclError: can't invoke "tk" command: application has been destroyed`
+
+This occurred because GUI/ttkbootstrap resources were being created around the elevation/relaunch process.
+
+The intended architecture is:
+
+1. Application starts.
+2. Determine whether elevation is required.
+3. Elevate/relaunch if necessary.
+4. Only after the final process is established should the Tk/ttkbootstrap root and widgets be created.
+5. `create_gui()` builds the interface.
+6. `main()` owns the application lifecycle and `mainloop()`.
+
+Avoid creating multiple Tk root instances.
+
+---
+
+# Visual Identity
+
+The application is called:
+
+**Maintenance Goblin**
+
+The branding deliberately mixes:
+
+* Professional Windows utility
+* Friendly desktop application
+* Slightly mischievous goblin personality
+* Humour without making the software look unsafe or like malware
+
+A custom goblin logo/icon has been created.
+
+The GUI should ultimately look considerably more polished than default Tkinter.
+
+Use `ttkbootstrap` or well-designed custom ttk styling where appropriate.
+
+Preferred visual direction:
+
+* Modern Windows utility/dashboard
+* Strong hierarchy
+* Cards/panels
+* Generous spacing
+* Clear status indicators
+* Modern buttons
+* Dark/light theme support
+* Goblin branding used as personality rather than overwhelming the interface
+* Responsive/resizable layout where practical
+
+Avoid a generic collection of default Tkinter buttons.
+
+---
+
+# Goblin Personality
+
+Small pieces of humour are encouraged.
+
+For example:
+
+* "Summon the Goblin"
+* Goblin working/resting states
+* Occasional maintenance-related goblin messages
+* Small achievements/easter eggs
+
+However, important diagnostic information must always remain clear.
+
+Error messages should explain the actual problem rather than replacing useful information with jokes.
+
+---
+
+# Logging
+
+Logs should primarily be available **inside the application**.
+
+Users should not receive modal message boxes simply saying that a log was written.
+
+Desired behaviour:
+
+Task running → visible status/progress → task result → log available in interface.
+
+Logs/reports may additionally be written to an appropriate application data directory and exported manually.
+
+Potential report information:
+
+* Timestamp
+* Maintenance Goblin version
+* Windows version
+* Tasks executed
+* Result of each task
+* Duration
+* Errors/warnings
+* Disk-space changes
+
+Avoid exposing unnecessarily sensitive machine information in exported reports.
+
+---
+
+# Configuration
+
+As the project matures, user-specific writable data should live somewhere such as:
+
+`%LOCALAPPDATA%\MaintenanceGoblin\`
+
+or an appropriate Windows application-data location.
+
+Potential stored data:
+
+* Settings
+* Theme preference
+* Cleanup profiles
+* Schedule configuration
+* Achievement state
+* Logs
+
+Do not assume the directory containing the packaged `.exe` is writable.
+
+---
+
+# Planned / Experimental Features
+
+Potential future functionality includes:
+
+### Maintenance Profiles
+
+Allow users to choose which tasks participate in a maintenance run.
+
+Examples:
+
+**Standard**
+
+* SFC
+* DISM
+* temp cleanup
+* drive optimization
+
+**Quick**
+
+* temp cleanup
+* storage check
+
+**Diagnostics**
+
+* SFC
+* DISM
+* CHKDSK read-only
+
+### System Tray
+
+Potential `pystray` integration:
+
+* Show Maintenance Goblin
+* Run maintenance
+* View status
+* Exit
+
+### Scheduling
+
+Optional integration with Windows Task Scheduler.
+
+Users may eventually schedule maintenance weekly/monthly.
+
+Scheduling must be explicitly opt-in.
+
+### CLI
+
+Potential command-line interface for advanced users and scheduled execution.
+
+Examples could eventually support:
+
+`--run-all`
+
+`--sfc`
+
+`--dism`
+
+`--cleanup`
+
+`--chkdsk`
+
+`--export-report`
+
+GUI and CLI should ultimately share the same underlying maintenance/service layer rather than duplicate implementation.
+
+### Update Checking
+
+Optional GitHub Releases update check.
+
+The application should remain fully functional offline.
+
+### Achievements
+
+A small local achievement system may add personality.
+
+Examples:
+
+* First Summon
+* Weekly Ritual
+* Disk Goblin
+* System Healer
+
+This should remain a fun secondary feature and never interfere with maintenance functionality.
+
+---
+
+# Packaging
+
+The application is packaged with PyInstaller.
+
+Desired release artifact:
+
+`MaintenanceGoblin.exe`
+
+Build requirements include:
+
+* `--onefile`
+* `--windowed`
+* custom `goblin.ico`
+* Windows version metadata
+
+A PyInstaller-compatible version information file is used to embed metadata including:
+
+* Product name
+* File description
+* Version
+* Author/company
+* Copyright
+* Website/comments
+
+The application should correctly resolve bundled resources when running from PyInstaller.
+
+Do not rely on the development working directory.
+
+---
+
+# GitHub / Open Source
+
+The repository is being prepared as a professional public GitHub project.
+
+Expected structure includes:
+
+```text
+maintenance-goblin/
+├── src/
+├── docs/
+├── assets/
+├── tests/
+├── .github/
+│   ├── workflows/
+│   └── ISSUE_TEMPLATE/
+├── README.md
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── requirements.txt
+├── pyproject.toml
+├── build.bat
+└── versionfile.txt
+```
+
+The exact structure may be improved if there is a clear architectural reason.
+
+---
+
+# Versioning
+
+Use Semantic Versioning.
+
+Current initial public release target:
+
+**v0.1.0**
+
+Examples:
+
+* `0.1.1` — bug fix
+* `0.2.0` — meaningful backwards-compatible functionality
+* `1.0.0` — stable mature public release
+
+Maintain a useful `CHANGELOG.md`.
+
+---
+
+# GitHub Release
+
+The initial release should provide a downloadable Windows executable so normal users do not need Python installed.
+
+Release assets should eventually include:
+
+* `MaintenanceGoblin.exe`
+* SHA-256 checksum
+* optional portable ZIP
+* source automatically supplied by GitHub
+
+GitHub Actions should eventually automate Windows builds/releases from version tags.
+
+---
+
+# GitHub Pages
+
+The project should have a small GitHub Pages site acting as its public landing/documentation page.
+
+It should include:
+
+* Maintenance Goblin branding
+* What the application does
+* Screenshot(s)
+* Features
+* Download latest release
+* Safety/transparency explanation
+* Documentation
+* GitHub repository link
+* Issue/report bug link
+
+The website should visually match the application where practical.
+
+---
+
+# Security & Trust
+
+This is especially important because Maintenance Goblin:
+
+* requests administrator privileges
+* executes Windows system utilities
+* deletes temporary files
+* may trigger antivirus/SmartScreen warnings when unsigned
+
+The project should therefore be unusually transparent.
+
+Prefer:
+
+* documented commands
+* source code availability
+* clear explanations
+* conservative defaults
+* explicit confirmation for potentially destructive operations
+* no telemetry by default
+* no hidden background processes
+* no registry cleaning
+* no fake performance claims
+* no bundled software
+* no advertisements
+* no unnecessary network access
+
+Any network functionality such as update checking should be obvious and limited.
+
+---
+
+# Architecture Direction
+
+The current application began largely as one Python file.
+
+As functionality grows, **do not continue indefinitely expanding `maintenance_goblin.py` into a monolith.**
+
+Gradually migrate toward something similar to:
+
+```text
+src/
+└── maintenance_goblin/
+    ├── __init__.py
+    ├── __main__.py
+    ├── app.py
+    ├── ui/
+    ├── tasks/
+    │   ├── sfc.py
+    │   ├── dism.py
+    │   ├── chkdsk.py
+    │   ├── cleanup.py
+    │   └── optimize.py
+    ├── services/
+    ├── reporting/
+    ├── config/
+    └── utils/
+```
+
+Do this incrementally rather than rewriting functioning code unnecessarily.
+
+Maintenance operations should ideally expose structured results rather than directly manipulating GUI widgets.
+
+For example, conceptually:
+
+```text
+TaskResult
+- task
+- status
+- summary
+- raw_output
+- duration
+- warnings
+- error
+```
+
+This will make GUI, CLI, reports and tests share the same underlying functionality.
+
+---
+
+# Development Priorities
+
+When working on this repository, prioritize in this order:
+
+1. **Safety**
+2. **Reliability**
+3. **Correct Windows behaviour**
+4. **Useful user feedback**
+5. **Maintainable architecture**
+6. **Professional UI/UX**
+7. **Packaging/release reliability**
+8. **Documentation**
+9. **Additional features**
+10. **Fun goblin extras**
+
+Do not add features simply to make the application look larger.
+
+A smaller utility that reliably performs legitimate maintenance is preferable to a bloated "PC optimizer."
+
+---
+
+# Immediate Goal
+
+The immediate goal is to turn the current functioning prototype into a credible **v0.1.0 public GitHub release**.
+
+Before introducing major new features:
+
+1. Audit the current repository.
+2. Understand the existing implementation before changing it.
+3. Identify bugs, duplicated code and architectural problems.
+4. Verify all maintenance commands behave safely.
+5. Verify thread-safe GUI behaviour.
+6. Verify administrator elevation.
+7. Verify PyInstaller packaging.
+8. Improve the visual polish.
+9. Ensure documentation accurately describes implemented functionality.
+10. Add appropriate tests where practical.
+11. Prepare the GitHub release and GitHub Pages site.
+
+Preserve working functionality during refactoring.
+
+Do not perform a giant rewrite unless there is a compelling technical reason.
+
+When making changes, explain significant architectural decisions and keep commits logically scoped.
