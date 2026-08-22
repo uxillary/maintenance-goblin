@@ -1,0 +1,15 @@
+pycache/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+
+build/
+dist/
+*.spec
+
+.DS_Store
+Thumbs.db
+.vscode/
