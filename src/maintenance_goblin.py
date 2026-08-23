@@ -183,6 +183,37 @@ TASKS: list[Task] = [
     Task("Drive Optimization", "defrag C: /O", "defrag_log.txt"),
 ]
 
+TASK_DURATION_GUIDANCE = {
+    "SFC Scan": "usually 5–15 min",
+    "DISM Health Restore": "usually 5–20 min",
+    "Check Disk": "usually 1–10 min",
+    "Clear Temp": "usually under 1 min",
+    "Disk Cleanup": "varies; may wait for Windows",
+    "Drive Optimization": "usually under 5 min; varies by drive",
+}
+
+TASK_READY_GUIDANCE = {
+    "SFC Scan": "Typical: 5–15 min",
+    "DISM Health Restore": "Typical: 5–20 min",
+    "Check Disk": "Typical: 1–10 min",
+    "Clear Temp": "Typical: under 1 min",
+    "Disk Cleanup": "Typical: varies",
+    "Drive Optimization": "Typical: under 5 min",
+}
+
+
+def format_duration(seconds: float) -> str:
+    """Return an elapsed duration in a compact, human-readable form."""
+
+    total_seconds = max(0, int(seconds))
+    if total_seconds < 60:
+        return f"{total_seconds}s"
+    minutes, remaining_seconds = divmod(total_seconds, 60)
+    if minutes < 60:
+        return f"{minutes}m {remaining_seconds:02d}s"
+    hours, remaining_minutes = divmod(minutes, 60)
+    return f"{hours}h {remaining_minutes:02d}m"
+
 
 def run_task(task: Task, ui: Dict[str, tk.Widget]) -> None:
     """Execute ``task`` and display output in the log widget."""
@@ -448,6 +479,32 @@ def run_selected_tasks(ui: Dict[str, object]) -> None:
 
     ui["summary_var"].set(f"0 of {len(selected)} tasks complete")
     ui["status_var"].set("Preparing maintenance…")
+    session_started = time.monotonic()
+    ui["session_started"] = session_started
+    ui["session_active"] = True
+    ui["current_task"] = None
+    ui["current_task_started"] = None
+    ui["session_elapsed_var"].set("Session elapsed: 0s")
+    ui["current_elapsed_var"].set("Preparing selected tasks…")
+    ui["activity"].start(12)
+
+    def update_timers() -> None:
+        if not ui.get("session_active"):
+            return
+        now = time.monotonic()
+        ui["session_elapsed_var"].set(
+            f"Session elapsed: {format_duration(now - ui['session_started'])}"
+        )
+        task = ui.get("current_task")
+        task_started = ui.get("current_task_started")
+        if task is not None and task_started is not None:
+            guidance = TASK_DURATION_GUIDANCE[task.label]
+            ui["current_elapsed_var"].set(
+                f"{task.label}: {format_duration(now - task_started)} elapsed · {guidance}"
+            )
+        ui["timer_job"] = ui["root"].after(1000, update_timers)
+
+    update_timers()
     for task in TASKS:
         ui["task_status_vars"][task.label].set(
             "Queued" if task in selected else "Skipped"
@@ -456,20 +513,26 @@ def run_selected_tasks(ui: Dict[str, object]) -> None:
     before = psutil.disk_usage("C:\\").free if not TEST_MODE else 0
 
     def worker() -> None:
-        started = time.monotonic()
+        started = session_started
         for index, task in enumerate(selected, start=1):
+            task_started = time.monotonic()
             post_ui(
                 ui,
-                lambda task=task: (
-                    ui["task_status_vars"][task.label].set("Running"),
+                lambda task=task, task_started=task_started: (
+                    ui.__setitem__("current_task", task),
+                    ui.__setitem__("current_task_started", task_started),
+                    ui["task_status_vars"][task.label].set("Running · 0s"),
                     ui["status_var"].set(f"Running {task.label}…"),
                 ),
             )
             run_task(task, ui)
+            task_elapsed = time.monotonic() - task_started
             post_ui(
                 ui,
-                lambda task=task, index=index: (
-                    ui["task_status_vars"][task.label].set("Completed"),
+                lambda task=task, index=index, task_elapsed=task_elapsed: (
+                    ui["task_status_vars"][task.label].set(
+                        f"Completed · {format_duration(task_elapsed)}"
+                    ),
                     ui["progress"].configure(value=index),
                     ui["summary_var"].set(
                         f"{index} of {len(selected)} tasks complete"
@@ -483,9 +546,17 @@ def run_selected_tasks(ui: Dict[str, object]) -> None:
         post_ui(
             ui,
             lambda: (
+                ui.__setitem__("session_active", False),
+                ui.__setitem__("current_task", None),
+                ui.__setitem__("current_task_started", None),
+                ui["activity"].stop(),
                 ui["status_var"].set("Maintenance complete — Goblin rests."),
+                ui["current_elapsed_var"].set("All selected tasks complete"),
+                ui["session_elapsed_var"].set(
+                    f"Session elapsed: {format_duration(elapsed)}"
+                ),
                 ui["summary_var"].set(
-                    f"{len(selected)} tasks completed in {elapsed:.0f}s"
+                    f"{len(selected)} tasks completed in {format_duration(elapsed)}"
                 ),
                 ui["run_button"].configure(state="normal"),
             ),
@@ -591,7 +662,7 @@ def create_gui(root: ttkb.Window) -> None:
         item.grid(row=row, column=0, sticky="ew")
         item.columnconfigure(1, weight=1)
         selected_var = tk.BooleanVar(value=True)
-        status_var = tk.StringVar(value="Ready")
+        status_var = tk.StringVar(value=TASK_READY_GUIDANCE[task.label])
         task_vars[task.label] = selected_var
         task_status_vars[task.label] = status_var
         ttk.Checkbutton(
@@ -615,20 +686,52 @@ def create_gui(root: ttkb.Window) -> None:
     action = ttk.Frame(overview, padding=(0, 16, 0, 0))
     action.grid(row=3, column=0, sticky="ew")
     action.columnconfigure(0, weight=1)
-    status_var = tk.StringVar(value="Ready for maintenance")
+    status_var = tk.StringVar(
+        value="Simulation ready" if TEST_MODE else "Ready for maintenance"
+    )
     summary_var = tk.StringVar(value=f"{len(TASKS)} tasks selected")
+    current_elapsed_var = tk.StringVar(value="No task running")
+    session_elapsed_var = tk.StringVar(value="Session elapsed: 0s")
     ui["status_var"] = status_var
     ui["summary_var"] = summary_var
+    ui["current_elapsed_var"] = current_elapsed_var
+    ui["session_elapsed_var"] = session_elapsed_var
+    notice_text = (
+        "Simulation mode — Windows maintenance commands will not run."
+        if TEST_MODE
+        else "A full run typically takes 15–40+ min. Windows tools may appear inactive for several minutes."
+    )
+    ttk.Label(
+        action,
+        text=notice_text,
+        bootstyle="warning",
+        wraplength=650,
+    ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
     ttk.Label(
         action, textvariable=status_var, font=("Segoe UI", 10, "bold")
-    ).grid(row=0, column=0, sticky="w")
+    ).grid(row=1, column=0, sticky="w")
     ttk.Label(action, textvariable=summary_var, style="DashboardMuted.TLabel").grid(
-        row=1, column=0, sticky="w", pady=(2, 8)
+        row=2, column=0, sticky="w", pady=(2, 2)
     )
+    timing = ttk.Frame(action)
+    timing.grid(row=3, column=0, sticky="ew", padx=(0, 18), pady=(0, 8))
+    timing.columnconfigure(0, weight=1)
+    ttk.Label(
+        timing,
+        textvariable=current_elapsed_var,
+        style="DashboardMuted.TLabel",
+        wraplength=550,
+    ).grid(row=0, column=0, sticky="w")
+    ttk.Label(
+        timing, textvariable=session_elapsed_var, style="DashboardMuted.TLabel"
+    ).grid(row=0, column=1, sticky="e", padx=(16, 0))
+    activity = ttk.Progressbar(action, mode="indeterminate", bootstyle="info-striped")
+    activity.grid(row=4, column=0, sticky="ew", padx=(0, 18), pady=(0, 5))
+    ui["activity"] = activity
     progress = ttk.Progressbar(
         action, mode="determinate", bootstyle="success-striped"
     )
-    progress.grid(row=2, column=0, sticky="ew", padx=(0, 18))
+    progress.grid(row=5, column=0, sticky="ew", padx=(0, 18))
     ui["progress"] = progress
     run_btn = ttk.Button(
         action,
@@ -637,7 +740,7 @@ def create_gui(root: ttkb.Window) -> None:
         bootstyle="success",
         padding=(22, 12),
     )
-    run_btn.grid(row=0, column=1, rowspan=3, sticky="e")
+    run_btn.grid(row=1, column=1, rowspan=5, sticky="e")
     ui["run_button"] = run_btn
 
     log_tab = ttk.Frame(nb)
