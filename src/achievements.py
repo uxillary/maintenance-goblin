@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 try:  # pragma: no cover - optional
     import winsound
@@ -79,13 +79,18 @@ def toggle_sound(enable: bool) -> None:
     _save(data)
 
 
-def show_gallery(parent=None) -> None:
+def show_gallery(parent=None, icon_path: Optional[str] = None) -> None:
     import tkinter as tk
     from tkinter import ttk
 
     badges = get_unlocked()
     win = tk.Toplevel(parent)
     win.title("Goblin Gallery")
+    if icon_path:
+        try:
+            win.iconbitmap(icon_path)
+        except tk.TclError:
+            pass
     ttk.Label(win, text="Achievements", font=("Segoe UI", 12, "bold")).pack(padx=10, pady=10)
     if not badges:
         ttk.Label(win, text="No achievements yet").pack(padx=10, pady=10)

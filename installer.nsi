@@ -1,6 +1,6 @@
 ; Maintenance Goblin NSIS installer
 !define APP_NAME "Maintenance Goblin"
-!define APP_VERSION "0.1.2"
+!define APP_VERSION "0.2.0"
 
 OutFile "MaintenanceGoblinSetup.exe"
 InstallDir "$PROGRAMFILES32\Maintenance Goblin"
@@ -8,6 +8,7 @@ RequestExecutionLevel admin
 
 !include "MUI2.nsh"
 !define MUI_ICON "goblin.ico"
+!define MUI_UNICON "goblin.ico"
 !define MUI_HEADERIMAGE
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION LaunchApp

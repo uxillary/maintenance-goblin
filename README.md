@@ -1,33 +1,57 @@
 # Maintenance Goblin
 
-A polished Windows desktop utility that wraps SFC, DISM, temporary file cleanup, Disk Cleanup, and defrag in a single window. Logs stream live with progress indicators and no disruptive pop-ups.
+Maintenance Goblin is a friendly Windows 10/11 desktop utility for running legitimate built-in maintenance tools from one clear dashboard. It favors transparent, conservative system maintenance over misleading “PC optimizer” claims.
 
 ## Features
-- One-click "Run All Tasks"
-- Live in-app logs and progress
-- Safe admin elevation before the GUI starts
-- Optional read-only CHKDSK
-- Exportable report of actions taken
 
-## Installation (development)
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python src/maintenance_goblin.py
+- Responsive Overview dashboard with live CPU, memory, and storage statistics
+- Selectable maintenance plan with per-task status and overall progress
+- SFC, DISM, and read-only CHKDSK maintenance
+- Temporary-file cleanup that skips locked files
+- Windows Disk Cleanup and drive-aware Windows optimization
+- Separate in-app Logs view with report export
+- Light and dark themes, startup preference, and Gallery under Settings
+- Administrator elevation for real maintenance; safe `--test` mode without elevation
+
+## Run from source
+
+Requires Python 3.9 or newer on Windows.
+
+```powershell
+if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe .\src\maintenance_goblin.py --test
 ```
 
-## Build Windows EXE
-```bash
-pyinstaller --onefile --windowed --name "MaintenanceGoblin" ^
-  --icon docs/img/goblin.ico src/maintenance_goblin.py
+Run these commands from the repository folder. The first command preserves an
+existing virtual environment instead of rebuilding it. Activation is optional
+because every command calls the environment's Python executable directly. If
+environment creation is needed, allow it to finish rather than pressing Ctrl+C.
+
+The `--test` flag simulates tasks without running Windows maintenance commands. To perform real maintenance, omit `--test`; Windows will request administrator permission.
+
+This command opens the desktop app and keeps running until you close its window. Pressing Ctrl+C from PowerShell also closes a console-launched test run cleanly.
+
+## Tests
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-## Documentation
-See the [documentation](docs/index.md) for screenshots and additional details.
+## Build the Windows executable
 
-## Contributing
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+```powershell
+.\.venv\Scripts\python.exe -m pip install pyinstaller
+.\build.bat
+```
 
-## License
-Licensed under the [MIT License](LICENSE).
+The executable is written to `dist\MaintenanceGoblin.exe` with the project icon and Windows version metadata.
+
+## Project information
+
+- [Documentation](docs/index.md)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+
+Maintenance Goblin is licensed under the [MIT License](LICENSE).

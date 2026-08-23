@@ -8,7 +8,7 @@ It provides a friendly GUI around legitimate Windows maintenance tools such as S
 
 The project started as a simple Tkinter script and is evolving into a polished, safe and professional open-source Windows utility.
 
-**Current release target:** `v0.1.0`
+**Current release target:** `v0.2.0`
 
 ---
 
@@ -580,9 +580,9 @@ Build output such as `build/` and `dist/` should normally remain ignored by Git.
 
 Use Semantic Versioning.
 
-Initial public release:
+Current public release target:
 
-`v0.1.0`
+`v0.2.0`
 
 Examples:
 

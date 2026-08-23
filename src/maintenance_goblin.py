@@ -51,10 +51,11 @@ if sys.stderr is None:  # pragma: no cover - relies on PyInstaller behaviour
 
 
 # Semantic version of the application
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 APP_NAME = "Maintenance Goblin"
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
+ICON_PATH = os.path.join(BASE_DIR, "goblin.ico")
 
 # Resolve user-specific application directory
 APP_DIR = os.path.join(
@@ -67,6 +68,19 @@ SETTINGS = load_json("settings.json", {"autostart": False, "remote_log": {"url":
 TEST_MODE = False
 DEBUG_MODE = False
 SILENT_MODE = False
+
+
+def set_window_icon(window: tk.Misc) -> None:
+    """Apply the application icon when the platform and Tk support it."""
+
+    if not os.path.isfile(ICON_PATH):
+        return
+    try:
+        window.iconbitmap(ICON_PATH)  # type: ignore[attr-defined]
+    except (AttributeError, tk.TclError):
+        # ``.ico`` window icons are Windows-specific. Packaging should still
+        # remain usable if Tk cannot load one on another platform.
+        pass
 
 @dataclass
 class Task:
@@ -306,11 +320,31 @@ def process_ui_events(ui: Dict[str, object]) -> None:
     ui["root"].after(50, lambda: process_ui_events(ui))  # type: ignore[union-attr]
 
 
+def configure_readability_styles(style: ttkb.Style) -> None:
+    """Apply legible supporting-text styles for the active theme."""
+
+    background = style.colors.bg.lstrip("#")
+    red, green, blue = (int(background[index:index + 2], 16) for index in (0, 2, 4))
+    is_dark = (red * 299 + green * 587 + blue * 114) / 1000 < 128
+    muted = style.colors.light if is_dark else style.colors.dark
+    style.configure(
+        "DashboardMuted.TLabel",
+        foreground=muted,
+        font=("Segoe UI", 10),
+    )
+    style.configure(
+        "DashboardStatus.TLabel",
+        foreground=style.colors.fg,
+        font=("Segoe UI", 10, "bold"),
+    )
+
+
 def toggle_theme(style: ttkb.Style) -> None:
     """Switch between a light and dark theme."""
 
     current = style.theme_use()
     style.theme_use("flatly" if current == "darkly" else "darkly")
+    configure_readability_styles(style)
 
 
 def get_system_info() -> dict[str, str]:
@@ -366,6 +400,7 @@ def show_update_dialog(ui: Dict[str, tk.Widget], latest: str, notes: str, url: s
 
     win = tk.Toplevel(ui["root"])
     win.title("Update Available")
+    set_window_icon(win)
     ttk.Label(win, text=f"Version {latest} is available", font=("Segoe UI", 11, "bold")).pack(
         padx=10, pady=10
     )
@@ -384,10 +419,19 @@ def show_splash() -> None:
         splash = tk.Tk()
     except tk.TclError:  # pragma: no cover - headless environments
         return
+    set_window_icon(splash)
     splash.overrideredirect(True)
     tk.Label(splash, text="Summoning Goblin...", padx=20, pady=20).pack()
     splash.after(1500, splash.destroy)
-    splash.mainloop()
+    try:
+        splash.mainloop()
+    except KeyboardInterrupt:
+        # Closing a console-launched GUI with Ctrl+C is a normal cancellation,
+        # so do not turn it into a traceback that looks like an application error.
+        try:
+            splash.destroy()
+        except tk.TclError:
+            pass
 
 
 def run_selected_tasks(ui: Dict[str, object]) -> None:
@@ -454,6 +498,7 @@ def create_gui(root: ttkb.Window) -> None:
     """Build the responsive maintenance dashboard."""
 
     style = root.style
+    configure_readability_styles(style)
     root.geometry("960x720")
     root.minsize(720, 600)
     root.rowconfigure(1, weight=1)
@@ -470,12 +515,12 @@ def create_gui(root: ttkb.Window) -> None:
     ttk.Label(
         header,
         text="Safe, transparent Windows maintenance",
-        bootstyle="secondary",
+        style="DashboardMuted.TLabel",
     ).grid(row=1, column=0, sticky="w", pady=(2, 0))
     ttk.Label(
         header,
         text=f"v{__version__}  ·  {'Administrator' if is_admin() else 'Standard user'}",
-        bootstyle="secondary",
+        style="DashboardMuted.TLabel",
     ).grid(row=0, column=1, rowspan=2, sticky="e")
 
     nb = ttk.Notebook(root, padding=(18, 0, 18, 18))
@@ -513,12 +558,12 @@ def create_gui(root: ttkb.Window) -> None:
             card, textvariable=value_var, font=("Segoe UI", 20, "bold")
         ).pack(anchor="w")
         ttk.Label(
-            card, textvariable=detail_var, bootstyle="secondary"
+            card, textvariable=detail_var, style="DashboardMuted.TLabel"
         ).pack(anchor="w", pady=(4, 0))
 
     os_var = tk.StringVar()
     ui["os_var"] = os_var
-    ttk.Label(overview, textvariable=os_var, bootstyle="secondary").grid(
+    ttk.Label(overview, textvariable=os_var, style="DashboardMuted.TLabel").grid(
         row=1, column=0, sticky="w", pady=(10, 14)
     )
 
@@ -559,10 +604,10 @@ def create_gui(root: ttkb.Window) -> None:
             item, text=task.label, font=("Segoe UI", 10, "bold")
         ).grid(row=0, column=1, sticky="w")
         ttk.Label(
-            item, text=descriptions[task.label], bootstyle="secondary"
+            item, text=descriptions[task.label], style="DashboardMuted.TLabel"
         ).grid(row=1, column=1, sticky="w")
         ttk.Label(
-            item, textvariable=status_var, bootstyle="secondary"
+            item, textvariable=status_var, style="DashboardStatus.TLabel"
         ).grid(row=0, column=2, rowspan=2, sticky="e", padx=(16, 4))
     ui["task_vars"] = task_vars
     ui["task_status_vars"] = task_status_vars
@@ -577,7 +622,7 @@ def create_gui(root: ttkb.Window) -> None:
     ttk.Label(
         action, textvariable=status_var, font=("Segoe UI", 10, "bold")
     ).grid(row=0, column=0, sticky="w")
-    ttk.Label(action, textvariable=summary_var, bootstyle="secondary").grid(
+    ttk.Label(action, textvariable=summary_var, style="DashboardMuted.TLabel").grid(
         row=1, column=0, sticky="w", pady=(2, 8)
     )
     progress = ttk.Progressbar(
@@ -627,7 +672,7 @@ def create_gui(root: ttkb.Window) -> None:
     ttk.Label(
         settings,
         text="Appearance, startup behavior, and goblin extras.",
-        bootstyle="secondary",
+        style="DashboardMuted.TLabel",
     ).grid(row=1, column=0, sticky="w", pady=(3, 20))
 
     appearance = ttk.Labelframe(settings, text="APPEARANCE", padding=16)
@@ -679,7 +724,7 @@ def create_gui(root: ttkb.Window) -> None:
     ttk.Button(
         extras,
         text="Open Gallery",
-        command=lambda: achievements.show_gallery(root),
+        command=lambda: achievements.show_gallery(root, ICON_PATH),
         bootstyle="secondary-outline",
     ).grid(row=0, column=1, sticky="e")
 
@@ -762,12 +807,22 @@ def main() -> None:
         run_tasks_silent()
         return
 
-    if not SILENT_MODE:
+    # Test mode is commonly launched from a terminal while developing.  Skip
+    # the decorative delay so the safe, simulated dashboard appears at once.
+    if not TEST_MODE:
         show_splash()
 
     root = ttkb.Window(title=APP_NAME, themename="superhero")
+    set_window_icon(root)
     create_gui(root)
-    root.mainloop()
+    try:
+        root.mainloop()
+    except KeyboardInterrupt:
+        # Treat Ctrl+C like closing the window when run from a console.
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
 
 
 if __name__ == "__main__":  # pragma: no cover

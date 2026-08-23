@@ -2,3 +2,16 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 python .\src\maintenance_goblin.py --test
+--
+
+if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
+
+TEST TEST
+
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe .\src\maintenance_goblin.py --test
+
+REAL TEST
+
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\build.bat
