@@ -1,51 +1,62 @@
 # Maintenance Goblin
 
-Maintenance Goblin is a friendly Windows 10/11 desktop utility for running legitimate built-in maintenance tools from one clear dashboard. It favors transparent, conservative system maintenance over misleading “PC optimizer” claims.
+Maintenance Goblin is a Windows 10/11 desktop utility for running legitimate built-in maintenance tools from one clear dashboard. It uses conservative defaults and explains what it runs instead of making “PC optimizer” claims.
+
+![Maintenance Goblin overview](docs/img/ui1.png)
 
 ## Features
 
-- Responsive Overview dashboard with live CPU, memory, and storage statistics
-- Selectable maintenance plan with per-task status and overall progress
-- SFC, DISM, and read-only CHKDSK maintenance
-- Temporary-file cleanup that skips locked files
-- Windows Disk Cleanup and drive-aware Windows optimization
-- Separate in-app Logs view with report export
-- Light and dark themes, startup preference, and Gallery under Settings
-- Administrator elevation for real maintenance; safe `--test` mode without elevation
+- Live CPU, memory, and system-drive statistics
+- Selectable maintenance plan with per-task state, elapsed time, duration guidance, and overall progress
+- System File Checker (`sfc /scannow`)
+- Windows image repair (`DISM /Online /Cleanup-Image /RestoreHealth`)
+- Read-only system-drive check (`chkdsk C:`)
+- Temporary-file cleanup that skips files Windows will not release
+- Windows Disk Cleanup (`cleanmgr`)
+- Drive-aware Windows optimization (`defrag C: /O`)
+- Dedicated Logs view with text-report export
+- Three application themes, optional launch at sign-in, and local achievements
+- Safe simulation mode for development and demonstrations
+
+Real maintenance runs request administrator access. Maintenance Goblin does not include a registry cleaner, telemetry by default, advertising, or bundled software.
+
+## Download
+
+Download `MaintenanceGoblin.exe` and its `.sha256` checksum from the [latest GitHub release](https://github.com/uxillary/maintenance-goblin/releases/latest).
+
+The current executable is unsigned, so Windows may show an unknown-publisher or SmartScreen warning. Verify that the file came from this repository and compare its SHA-256 hash before running it:
+
+```powershell
+Get-FileHash .\MaintenanceGoblin.exe -Algorithm SHA256
+```
 
 ## Run from source
 
-Requires Python 3.9 or newer on Windows.
+Python 3.9 or newer is required. Run these commands from the repository root on Windows:
 
 ```powershell
-if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
+python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe .\src\maintenance_goblin.py --test
 ```
 
-Run these commands from the repository folder. The first command preserves an
-existing virtual environment instead of rebuilding it. Activation is optional
-because every command calls the environment's Python executable directly. If
-environment creation is needed, allow it to finish rather than pressing Ctrl+C.
+`--test` simulates every task without elevation or system changes. Omit it only when you intend to run the real Windows maintenance commands.
 
-The `--test` flag simulates tasks without running Windows maintenance commands. To perform real maintenance, omit `--test`; Windows will request administrator permission.
+## Command-line options
 
-This command opens the desktop app and keeps running until you close its window. Pressing Ctrl+C from PowerShell also closes a console-launched test run cleanly.
+The source entry point also supports `--cli`, `--silent`, `--run-all`, `--sfc-only`, `--cleanup-only`, and `--export-log PATH`. Real CLI and silent runs require administrator access. The published executable is built as a windowed application, so these options are primarily intended for source-based development and testing.
 
-## Tests
+## Tests and build
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
-
-## Build the Windows executable
-
-```powershell
 .\.venv\Scripts\python.exe -m pip install pyinstaller
 .\build.bat
 ```
 
-The executable is written to `dist\MaintenanceGoblin.exe` with the project icon and Windows version metadata.
+The build script creates `dist\MaintenanceGoblin.exe` as a one-file, windowed executable with the project icon and Windows version metadata.
+
+An NSIS definition is available in `installer.nsi`, but the automated release workflow currently publishes the standalone executable and checksum—not `MaintenanceGoblinSetup.exe`.
 
 ## Project information
 
@@ -53,5 +64,4 @@ The executable is written to `dist\MaintenanceGoblin.exe` with the project icon 
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
-
-Maintenance Goblin is licensed under the [MIT License](LICENSE).
+- [MIT License](LICENSE)

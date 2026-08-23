@@ -5,15 +5,20 @@
 - Responsive maintenance dashboard with CPU, memory, and storage cards.
 - Selectable per-task rows with queued, running, completed, and skipped states.
 - Dedicated Overview, Logs, and Settings views.
+- Per-task duration guidance, elapsed-time feedback, and a session timer.
+- Custom application icon and Windows executable version metadata.
+- SHA-256 checksums for automated GitHub release builds.
 
 ### Changed
 - Made Run Maintenance the primary action and moved theme, startup, and Gallery controls into Settings.
 - Improved dark-theme readability with theme-aware, higher-contrast supporting text.
 - Updated test mode so simulated maintenance does not require administrator elevation.
+- Updated the tag-triggered release workflow to run the full test suite and attach the standalone executable and checksum.
 
 ### Fixed
 - Routed background maintenance updates through the Tk main thread to prevent unsafe widget access.
 - Prevented CLI logging from crashing on Windows consoles that cannot encode Unicode status symbols.
+- Improved dashboard resizing, task-list scrolling, and clean Ctrl+C shutdown for console-launched test runs.
 
 ## [0.1.2] - 2025-08-12
 ### Changed

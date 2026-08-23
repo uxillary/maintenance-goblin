@@ -1,7 +1,7 @@
 [project]
 name = "maintenance-goblin"
 version = "0.2.0"
-description = "A friendly Windows maintenance utility (SFC, DISM, cleanup, defrag) with a polished UI."
+description = "A transparent Windows maintenance dashboard for built-in system tools."
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
