@@ -15,7 +15,7 @@ import ctypes
 import datetime as dt
 import os
 import platform
-import random
+import queue
 import subprocess
 import sys
 import threading
@@ -67,15 +67,6 @@ SETTINGS = load_json("settings.json", {"autostart": False, "remote_log": {"url":
 TEST_MODE = False
 DEBUG_MODE = False
 SILENT_MODE = False
-
-# Fun phrases displayed while tasks are running
-PHRASES = [
-    "Goblin rummages through bits...",
-    "Goblin sharpens tiny broom...",
-    "Goblin mutters incantations...",
-    "Goblin dances around cache fires...",
-]
-
 
 @dataclass
 class Task:
@@ -256,7 +247,9 @@ class CLILogger:
         """Compatibility shim for ``tk.Text`` widget."""
 
     def insert(self, _index: str, message: str) -> None:
-        print(message, end="")
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        console_message = message.encode(encoding, errors="replace").decode(encoding)
+        print(console_message, end="")
         if self.path:
             with open(self.path, "a", encoding="utf-8") as fh:
                 fh.write(message)
@@ -278,12 +271,39 @@ def run_tasks_cli(tasks: list[Task], export_log: Optional[str] = None) -> None:
 # ---------------------------------------------------------------------------
 
 
-def animate_status(label: ttk.Label, stop_event: threading.Event) -> None:
-    """Rotate whimsical phrases on ``label`` until ``stop_event`` is set."""
+class UIThreadLogger:
+    """Queue text operations so worker threads never touch Tk directly."""
 
-    while not stop_event.is_set():
-        label.configure(text=random.choice(PHRASES))
-        time.sleep(1.5)
+    def __init__(self, events: queue.Queue, text: tk.Text) -> None:
+        self.events = events
+        self._text = text
+
+    def configure(self, **kwargs: object) -> None:
+        self.events.put(lambda: self._text.configure(**kwargs))
+
+    def insert(self, index: str, message: str) -> None:
+        self.events.put(lambda: self._text.insert(index, message))
+
+    def see(self, index: str) -> None:
+        self.events.put(lambda: self._text.see(index))
+
+
+def post_ui(ui: Dict[str, object], callback: Callable[[], None]) -> None:
+    """Schedule ``callback`` for the Tk main thread."""
+
+    ui["events"].put(callback)  # type: ignore[union-attr]
+
+
+def process_ui_events(ui: Dict[str, object]) -> None:
+    """Drain queued worker updates and continue polling."""
+
+    events: queue.Queue = ui["events"]  # type: ignore[assignment]
+    try:
+        while True:
+            events.get_nowait()()
+    except queue.Empty:
+        pass
+    ui["root"].after(50, lambda: process_ui_events(ui))  # type: ignore[union-attr]
 
 
 def toggle_theme(style: ttkb.Style) -> None:
@@ -294,12 +314,19 @@ def toggle_theme(style: ttkb.Style) -> None:
 
 
 def get_system_info() -> dict[str, str]:
-    """Return CPU, RAM and OS information."""
+    """Return concise system information for the overview cards."""
 
+    memory = psutil.virtual_memory()
+    system_drive = os.environ.get("SystemDrive", "C:") + "\\"
+    disk = psutil.disk_usage(system_drive)
     return {
-        "cpu": f"CPU: {psutil.cpu_percent(interval=None)}%",
-        "ram": f"RAM: {psutil.virtual_memory().percent}%",
-        "os": f"OS: {platform.platform()}",
+        "cpu": f"{psutil.cpu_percent(interval=None):.0f}%",
+        "cpu_detail": platform.processor() or "Processor usage",
+        "ram": f"{memory.percent:.0f}%",
+        "ram_detail": f"{memory.used / 1024**3:.1f} of {memory.total / 1024**3:.1f} GB used",
+        "storage": f"{disk.free / 1024**3:.0f} GB free",
+        "storage_detail": f"{system_drive} · {disk.total / 1024**3:.0f} GB total",
+        "os": platform.platform(),
     }
 
 
@@ -309,19 +336,14 @@ def update_system_info(ui: Dict[str, tk.Widget]) -> None:
     info = get_system_info()
     ui["cpu_var"].set(info["cpu"])
     ui["ram_var"].set(info["ram"])
+    ui["storage_var"].set(info["storage"])
+    ui["cpu_detail_var"].set(info["cpu_detail"])
+    ui["ram_detail_var"].set(info["ram_detail"])
+    ui["storage_detail_var"].set(info["storage_detail"])
     # OS generally does not change, set once
     if not ui["os_var"].get():
         ui["os_var"].set(info["os"])
     ui["root"].after(2000, lambda: update_system_info(ui))
-
-
-def toggle_logs(ui: Dict[str, tk.Widget]) -> None:
-    """Show or hide the log tab in the notebook."""
-
-    nb: ttk.Notebook = ui["notebook"]
-    tab_id = ui["log_tab"]
-    state = nb.tab(tab_id, "state")
-    nb.tab(tab_id, state="hidden" if state == "normal" else "normal")
 
 
 def export_report(log_widget: tk.Text) -> None:
@@ -368,109 +390,258 @@ def show_splash() -> None:
     splash.mainloop()
 
 
-def run_selected_tasks(ui: Dict[str, tk.Widget]) -> None:
-    """Run the tasks selected in the menu."""
+def run_selected_tasks(ui: Dict[str, object]) -> None:
+    """Run selected dashboard tasks sequentially in a worker thread."""
 
     selected = [t for t in TASKS if ui["task_vars"][t.label].get()]
     if not selected:
+        ui["status_var"].set("Select at least one maintenance task.")
         return
 
     ui["run_button"].configure(state="disabled")
     ui["progress"]["maximum"] = len(selected)
     ui["progress"]["value"] = 0
 
-    stop_event = threading.Event()
-    threading.Thread(
-        target=animate_status, args=(ui["status"], stop_event), daemon=True
-    ).start()
+    ui["summary_var"].set(f"0 of {len(selected)} tasks complete")
+    ui["status_var"].set("Preparing maintenance…")
+    for task in TASKS:
+        ui["task_status_vars"][task.label].set(
+            "Queued" if task in selected else "Skipped"
+        )
 
     before = psutil.disk_usage("C:\\").free if not TEST_MODE else 0
 
     def worker() -> None:
-        for task in selected:
+        started = time.monotonic()
+        for index, task in enumerate(selected, start=1):
+            post_ui(
+                ui,
+                lambda task=task: (
+                    ui["task_status_vars"][task.label].set("Running"),
+                    ui["status_var"].set(f"Running {task.label}…"),
+                ),
+            )
             run_task(task, ui)
-            ui["progress"]["value"] += 1
+            post_ui(
+                ui,
+                lambda task=task, index=index: (
+                    ui["task_status_vars"][task.label].set("Completed"),
+                    ui["progress"].configure(value=index),
+                    ui["summary_var"].set(
+                        f"{index} of {len(selected)} tasks complete"
+                    ),
+                ),
+            )
         after = psutil.disk_usage("C:\\").free if not TEST_MODE else 0
         diff = (after - before) / (1024 ** 3)
         log_message(ui["log"], f"Free space change: {diff:.2f} GiB")
-        stop_event.set()
-        ui["status"].configure(text="Goblin rests.")
-        ui["run_button"].configure(state="normal")
+        elapsed = time.monotonic() - started
+        post_ui(
+            ui,
+            lambda: (
+                ui["status_var"].set("Maintenance complete — Goblin rests."),
+                ui["summary_var"].set(
+                    f"{len(selected)} tasks completed in {elapsed:.0f}s"
+                ),
+                ui["run_button"].configure(state="normal"),
+            ),
+        )
 
     threading.Thread(target=worker, daemon=True).start()
 
 
 def create_gui(root: ttkb.Window) -> None:
-    """Populate ``root`` with the application's widgets."""
+    """Build the responsive maintenance dashboard."""
 
     style = root.style
-    root.minsize(600, 400)
+    root.geometry("960x720")
+    root.minsize(720, 600)
+    root.rowconfigure(1, weight=1)
+    root.columnconfigure(0, weight=1)
 
-    ui: Dict[str, tk.Widget] = {"root": root}
+    ui: Dict[str, object] = {"root": root, "events": queue.Queue()}
 
-    ttk.Label(root, text=APP_NAME, font=("Segoe UI", 16, "bold")).pack(pady=5)
+    header = ttk.Frame(root, padding=(24, 18, 24, 10))
+    header.grid(row=0, column=0, sticky="ew")
+    header.columnconfigure(0, weight=1)
+    ttk.Label(
+        header, text="MAINTENANCE GOBLIN", font=("Segoe UI", 18, "bold")
+    ).grid(row=0, column=0, sticky="w")
+    ttk.Label(
+        header,
+        text="Safe, transparent Windows maintenance",
+        bootstyle="secondary",
+    ).grid(row=1, column=0, sticky="w", pady=(2, 0))
+    ttk.Label(
+        header,
+        text=f"v{__version__}  ·  {'Administrator' if is_admin() else 'Standard user'}",
+        bootstyle="secondary",
+    ).grid(row=0, column=1, rowspan=2, sticky="e")
 
-    ui["status"] = ttk.Label(root, text="Idle", bootstyle="secondary")
-    ui["status"].pack()
-
-    ui["progress"] = ttk.Progressbar(root, mode="determinate")
-    ui["progress"].pack(fill="x", padx=10, pady=5)
-
-    nb = ttk.Notebook(root)
-    nb.pack(fill="both", expand=True, padx=10, pady=5)
+    nb = ttk.Notebook(root, padding=(18, 0, 18, 18))
+    nb.grid(row=1, column=0, sticky="nsew")
     ui["notebook"] = nb
 
-    # System info tab
-    sys_tab = ttk.Frame(nb)
-    nb.add(sys_tab, text="System Info")
-    cpu_var = tk.StringVar()
-    ram_var = tk.StringVar()
-    os_var = tk.StringVar()
-    ttk.Label(sys_tab, textvariable=cpu_var).pack(anchor="w")
-    ttk.Label(sys_tab, textvariable=ram_var).pack(anchor="w")
-    ttk.Label(sys_tab, textvariable=os_var).pack(anchor="w")
-    ui.update({"cpu_var": cpu_var, "ram_var": ram_var, "os_var": os_var})
+    overview = ttk.Frame(nb, padding=(6, 18))
+    nb.add(overview, text="  Overview  ")
+    overview.columnconfigure(0, weight=1)
+    overview.rowconfigure(2, weight=1)
 
-    # Log tab
+    stats = ttk.Frame(overview)
+    stats.grid(row=0, column=0, sticky="ew")
+    for column in range(3):
+        stats.columnconfigure(column, weight=1, uniform="stats")
+
+    cards = (
+        ("CPU", "cpu_var", "cpu_detail_var", "info"),
+        ("MEMORY", "ram_var", "ram_detail_var", "primary"),
+        ("SYSTEM STORAGE", "storage_var", "storage_detail_var", "success"),
+    )
+    for column, (title, value_key, detail_key, colour) in enumerate(cards):
+        value_var = tk.StringVar(value="—")
+        detail_var = tk.StringVar(value="Loading…")
+        ui[value_key] = value_var
+        ui[detail_key] = detail_var
+        card = ttk.Labelframe(stats, text=title, padding=16, bootstyle=colour)
+        card.grid(
+            row=0,
+            column=column,
+            sticky="nsew",
+            padx=(0 if column == 0 else 6, 0),
+        )
+        ttk.Label(
+            card, textvariable=value_var, font=("Segoe UI", 20, "bold")
+        ).pack(anchor="w")
+        ttk.Label(
+            card, textvariable=detail_var, bootstyle="secondary"
+        ).pack(anchor="w", pady=(4, 0))
+
+    os_var = tk.StringVar()
+    ui["os_var"] = os_var
+    ttk.Label(overview, textvariable=os_var, bootstyle="secondary").grid(
+        row=1, column=0, sticky="w", pady=(10, 14)
+    )
+
+    maintenance = ttk.Labelframe(overview, text="MAINTENANCE PLAN", padding=14)
+    maintenance.grid(row=2, column=0, sticky="nsew")
+    maintenance.columnconfigure(0, weight=1)
+
+    descriptions = {
+        "SFC Scan": "Check and repair protected Windows system files",
+        "DISM Health Restore": "Repair the Windows component store",
+        "Check Disk": "Run a read-only filesystem diagnostic",
+        "Clear Temp": "Remove available files from Windows temporary storage",
+        "Disk Cleanup": "Open the built-in Windows Disk Cleanup tool",
+        "Drive Optimization": "Let Windows choose the correct drive optimization",
+    }
+    task_vars: Dict[str, tk.BooleanVar] = {}
+    task_status_vars: Dict[str, tk.StringVar] = {}
+
+    def update_selection_summary() -> None:
+        selected_count = sum(var.get() for var in task_vars.values())
+        ui["summary_var"].set(f"{selected_count} tasks selected")
+
+    for row, task in enumerate(TASKS):
+        item = ttk.Frame(maintenance, padding=(8, 7))
+        item.grid(row=row, column=0, sticky="ew")
+        item.columnconfigure(1, weight=1)
+        selected_var = tk.BooleanVar(value=True)
+        status_var = tk.StringVar(value="Ready")
+        task_vars[task.label] = selected_var
+        task_status_vars[task.label] = status_var
+        ttk.Checkbutton(
+            item,
+            variable=selected_var,
+            command=update_selection_summary,
+            bootstyle="success-round-toggle",
+        ).grid(row=0, column=0, rowspan=2, padx=(0, 12))
+        ttk.Label(
+            item, text=task.label, font=("Segoe UI", 10, "bold")
+        ).grid(row=0, column=1, sticky="w")
+        ttk.Label(
+            item, text=descriptions[task.label], bootstyle="secondary"
+        ).grid(row=1, column=1, sticky="w")
+        ttk.Label(
+            item, textvariable=status_var, bootstyle="secondary"
+        ).grid(row=0, column=2, rowspan=2, sticky="e", padx=(16, 4))
+    ui["task_vars"] = task_vars
+    ui["task_status_vars"] = task_status_vars
+
+    action = ttk.Frame(overview, padding=(0, 16, 0, 0))
+    action.grid(row=3, column=0, sticky="ew")
+    action.columnconfigure(0, weight=1)
+    status_var = tk.StringVar(value="Ready for maintenance")
+    summary_var = tk.StringVar(value=f"{len(TASKS)} tasks selected")
+    ui["status_var"] = status_var
+    ui["summary_var"] = summary_var
+    ttk.Label(
+        action, textvariable=status_var, font=("Segoe UI", 10, "bold")
+    ).grid(row=0, column=0, sticky="w")
+    ttk.Label(action, textvariable=summary_var, bootstyle="secondary").grid(
+        row=1, column=0, sticky="w", pady=(2, 8)
+    )
+    progress = ttk.Progressbar(
+        action, mode="determinate", bootstyle="success-striped"
+    )
+    progress.grid(row=2, column=0, sticky="ew", padx=(0, 18))
+    ui["progress"] = progress
+    run_btn = ttk.Button(
+        action,
+        text="Run Maintenance",
+        command=lambda: run_selected_tasks(ui),
+        bootstyle="success",
+        padding=(22, 12),
+    )
+    run_btn.grid(row=0, column=1, rowspan=3, sticky="e")
+    ui["run_button"] = run_btn
+
     log_tab = ttk.Frame(nb)
-    nb.add(log_tab, text="Logs")
+    nb.add(log_tab, text="  Logs  ")
+    log_tab.rowconfigure(1, weight=1)
+    log_tab.columnconfigure(0, weight=1)
+    log_header = ttk.Frame(log_tab, padding=(12, 16, 12, 8))
+    log_header.grid(row=0, column=0, sticky="ew")
+    log_header.columnconfigure(0, weight=1)
+    ttk.Label(
+        log_header, text="Maintenance log", font=("Segoe UI", 13, "bold")
+    ).grid(row=0, column=0, sticky="w")
     log_widget = ScrolledText(log_tab, wrap="word")
-    log_widget.pack(fill="both", expand=True)
+    log_widget.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
     log_text = log_widget.text
     log_text.insert("end", "👺 The Maintenance Goblin is snoozing.\n")
     log_text.configure(state="disabled")
-    ui["log"] = log_text
-    ui["log_tab"] = log_tab
-
-    buttons = ttk.Frame(root)
-    buttons.pack(pady=5)
-
-    task_vars: Dict[str, tk.BooleanVar] = {}
-    task_menu_btn = ttk.Menubutton(buttons, text="Tasks")
-    task_menu = tk.Menu(task_menu_btn, tearoff=False)
-    task_menu_btn["menu"] = task_menu
-    for t in TASKS:
-        var = tk.BooleanVar(value=True)
-        task_menu.add_checkbutton(label=t.label, variable=var)
-        task_vars[t.label] = var
-    task_menu_btn.pack(side="left", padx=5)
-    ui["task_vars"] = task_vars
-
-    run_btn = ttk.Button(
-        buttons, text="Run Selected", command=lambda: run_selected_tasks(ui), bootstyle="success"
-    )
-    run_btn.pack(side="left", padx=5)
-    ui["run_button"] = run_btn
-
+    ui["log"] = UIThreadLogger(ui["events"], log_text)
     ttk.Button(
-        buttons, text="Toggle Logs", command=lambda: toggle_logs(ui)
-    ).pack(side="left", padx=5)
+        log_header,
+        text="Export Report",
+        command=lambda: export_report(log_text),
+        bootstyle="secondary-outline",
+    ).grid(row=0, column=1, sticky="e")
+
+    settings = ttk.Frame(nb, padding=24)
+    nb.add(settings, text="  Settings  ")
+    settings.columnconfigure(0, weight=1)
+    ttk.Label(
+        settings, text="Settings", font=("Segoe UI", 16, "bold")
+    ).grid(row=0, column=0, sticky="w")
+    ttk.Label(
+        settings,
+        text="Appearance, startup behavior, and goblin extras.",
+        bootstyle="secondary",
+    ).grid(row=1, column=0, sticky="w", pady=(3, 20))
+
+    appearance = ttk.Labelframe(settings, text="APPEARANCE", padding=16)
+    appearance.grid(row=2, column=0, sticky="ew", pady=(0, 12))
+    appearance.columnconfigure(0, weight=1)
+    ttk.Label(
+        appearance, text="Application theme", font=("Segoe UI", 10, "bold")
+    ).grid(row=0, column=0, sticky="w")
     ttk.Button(
-        buttons, text="Export Report", command=lambda: export_report(ui["log"])
-    ).pack(side="left", padx=5)
-    ttk.Button(
-        buttons, text="Toggle Theme", command=lambda: toggle_theme(style)
-    ).pack(side="left", padx=5)
+        appearance,
+        text="Toggle light / dark",
+        command=lambda: toggle_theme(style),
+        bootstyle="secondary-outline",
+    ).grid(row=0, column=1, sticky="e")
 
     autostart_var = tk.BooleanVar(
         value=SETTINGS.get("autostart", False) or autostart.is_enabled()
@@ -484,35 +655,47 @@ def create_gui(root: ttkb.Window) -> None:
         SETTINGS["autostart"] = autostart_var.get()
         save_json("settings.json", SETTINGS)
 
+    startup = ttk.Labelframe(settings, text="STARTUP", padding=16)
+    startup.grid(row=3, column=0, sticky="ew", pady=(0, 12))
+    startup.columnconfigure(0, weight=1)
+    ttk.Label(
+        startup,
+        text="Run Maintenance Goblin when you sign in",
+        font=("Segoe UI", 10, "bold"),
+    ).grid(row=0, column=0, sticky="w")
     ttk.Checkbutton(
-        buttons, text="Run at startup", variable=autostart_var, command=on_autostart
-    ).pack(side="left", padx=5)
-    ttk.Button(buttons, text="Gallery", command=lambda: achievements.show_gallery(root)).pack(
-        side="left", padx=5
-    )
+        startup,
+        variable=autostart_var,
+        command=on_autostart,
+        bootstyle="success-round-toggle",
+    ).grid(row=0, column=1, sticky="e")
+
+    extras = ttk.Labelframe(settings, text="GOBLIN EXTRAS", padding=16)
+    extras.grid(row=4, column=0, sticky="ew")
+    extras.columnconfigure(0, weight=1)
+    ttk.Label(
+        extras, text="View unlocked achievements", font=("Segoe UI", 10, "bold")
+    ).grid(row=0, column=0, sticky="w")
+    ttk.Button(
+        extras,
+        text="Open Gallery",
+        command=lambda: achievements.show_gallery(root),
+        bootstyle="secondary-outline",
+    ).grid(row=0, column=1, sticky="e")
 
     update_system_info(ui)
+    process_ui_events(ui)
 
     def update_cb(latest: Optional[str], notes: str, url: str) -> None:
         if not latest:
             return
-        root.after(0, lambda: show_update_dialog(ui, latest, notes, url))
+        post_ui(ui, lambda: show_update_dialog(ui, latest, notes, url))
 
     updater.check_async(__version__, update_cb)
 
 
 def main() -> None:
     """Entry point for running the GUI application."""
-
-    if os.name == "nt" and not is_admin():
-        print("Not admin. Relaunching...")
-        params = subprocess.list2cmdline(
-            sys.argv[1:] if getattr(sys, "frozen", False) else sys.argv
-        )
-        ctypes.windll.shell32.ShellExecuteW(
-            None, "runas", sys.executable, params, None, 1
-        )
-        sys.exit()
 
     parser = argparse.ArgumentParser(description=APP_NAME)
     parser.add_argument(
@@ -544,6 +727,18 @@ def main() -> None:
     TEST_MODE = args.test
     DEBUG_MODE = args.debug
     SILENT_MODE = args.silent
+
+    # Simulated test runs do not invoke Windows maintenance commands and should
+    # not require an administrator relaunch. Real GUI, CLI, and silent runs do.
+    if os.name == "nt" and not TEST_MODE and not is_admin():
+        print("Not admin. Relaunching...")
+        params = subprocess.list2cmdline(
+            sys.argv[1:] if getattr(sys, "frozen", False) else sys.argv
+        )
+        ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", sys.executable, params, None, 1
+        )
+        sys.exit()
 
     os.makedirs(APP_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
