@@ -15,3 +15,13 @@ REAL TEST
 
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 .\build.bat
+
+
+GITHUB RELEASE
+
+git add .
+git commit -m "Release v0.2.0"
+git push origin main
+
+git tag -a v0.2.0 -m "Maintenance Goblin v0.2.0"
+git push origin v0.2.0
