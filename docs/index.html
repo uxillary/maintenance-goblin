@@ -6,11 +6,13 @@
   <meta name="theme-color" content="#111a24">
   <meta name="description" content="Maintenance Goblin is a transparent Windows 10/11 dashboard for trusted, built-in maintenance tools.">
   <meta property="og:title" content="Maintenance Goblin — Windows maintenance, without the nonsense">
-  <meta property="og:description" content="A friendly, open-source dashboard for legitimate Windows maintenance tools.">
+  <meta property="og:description" content="A friendly, open-source Windows 10/11 dashboard for trusted maintenance tools, with conservative defaults and clear feedback.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="img/ui1.png">
+  <meta property="og:url" content="https://uxillary.github.io/maintenance-goblin/">
+  <meta property="og:site_name" content="Maintenance Goblin">
+  <meta property="og:image" content="https://uxillary.github.io/maintenance-goblin/img/ui1.png">
   <meta property="og:image:alt" content="Maintenance Goblin overview dashboard">
-  <title>Maintenance Goblin — Windows maintenance, without the nonsense</title>
+  <title>Maintenance Goblin | Friendly maintenance for Windows 10 &amp; 11</title>
   <link rel="icon" href="img/goblin.ico" sizes="any">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -36,10 +38,10 @@
         <h1>A friendlier way to care for your PC.</h1>
         <p class="lede">Maintenance Goblin puts trusted Windows tools behind one clear, approachable dashboard—with conservative defaults and no miracle claims.</p>
         <div class="actions">
-          <a class="button primary" href="https://github.com/uxillary/maintenance-goblin/releases/latest">Download Latest Release</a>
+          <a class="button primary" href="https://github.com/uxillary/maintenance-goblin/releases/latest"><span aria-hidden="true">↓</span> Download Latest Release</a>
           <a class="button secondary" href="https://github.com/uxillary/maintenance-goblin">View on GitHub</a>
         </div>
-        <p class="platform"><span aria-hidden="true">●</span> For Windows 10 and 11</p>
+        <p class="platform"><span class="platform-dot" aria-hidden="true">●</span><span class="platform-item">Windows 10 &amp; 11</span><span class="platform-separator" aria-hidden="true">·</span><span class="platform-item">Standalone <code>.exe</code></span><span class="platform-separator" aria-hidden="true">·</span><span class="platform-item">No Python required</span></p>
       </div>
       <div class="hero-mark" aria-hidden="true">
         <div class="logo-glow"></div>
@@ -82,11 +84,11 @@
       </div>
       <div class="screenshots">
         <figure>
-          <a href="img/ui1.png"><img src="img/ui1.png" alt="Open the full-size Maintenance Goblin overview showing system statistics, selectable tasks, and progress"></a>
+          <a href="img/ui1.png" aria-label="View the full-size Overview dashboard screenshot"><img src="img/ui1.png" alt="Maintenance Goblin Overview dashboard with system statistics, selectable maintenance tasks, and progress controls"></a>
           <figcaption><strong>Overview</strong><span>System stats, maintenance plan, and progress in one view.</span></figcaption>
         </figure>
         <figure>
-          <a href="img/ui2.png"><img src="img/ui2.png" alt="Open the full-size Maintenance Goblin Logs view showing timestamped maintenance output"></a>
+          <a href="img/ui2.png" aria-label="View the full-size Logs screenshot"><img src="img/ui2.png" alt="Maintenance Goblin Logs view with timestamped command output and report export controls"></a>
           <figcaption><strong>Logs</strong><span>Readable live output with one-click report export.</span></figcaption>
         </figure>
       </div>
@@ -97,19 +99,28 @@
       <div>
         <p class="eyebrow">A note about SmartScreen</p>
         <h2 id="safety-title">Transparent, even before you open it.</h2>
-        <p>The current Windows executable is not yet code-signed. Windows SmartScreen may therefore display an <strong>Unknown Publisher</strong> or unrecognised app warning. That warning reflects the missing signature; it does not mean the app is malicious.</p>
-        <p>Maintenance Goblin is open source, so you can inspect exactly what it does. Download builds only from the <a href="https://github.com/uxillary/maintenance-goblin/releases/latest">official GitHub Releases page</a>, where a SHA-256 checksum is provided. Code signing is planned for a future release.</p>
+        <p>The current Windows executable is not yet code-signed. Windows SmartScreen may therefore display an <strong>Unknown Publisher</strong> or unrecognised app warning. This is expected for the current release and reflects the missing signature.</p>
+        <p>Maintenance Goblin is open source, so you can inspect exactly what it does. For a trustworthy download, use only the <a href="https://github.com/uxillary/maintenance-goblin/releases/latest">official GitHub Releases page</a> and verify the published SHA-256 checksum.</p>
       </div>
     </section>
 
     <section class="section download" id="download" aria-labelledby="download-title">
       <div>
         <p class="eyebrow">Release 0.2.0</p>
-        <h2 id="download-title">Put the goblin to work.</h2>
-        <p>Download the standalone executable and checksum from the official release page.</p>
-        <a class="button primary" href="https://github.com/uxillary/maintenance-goblin/releases/latest">Download Latest Release</a>
+        <h2 id="download-title">Download for Windows.</h2>
+        <p>Get the ready-to-run release executable from GitHub. The checksum is included separately so you can verify your download.</p>
+        <a class="button primary" href="https://github.com/uxillary/maintenance-goblin/releases/latest"><span aria-hidden="true">↓</span> Download Latest Release</a>
+        <p class="download-note">Opens the official GitHub Releases page</p>
       </div>
-      <ul class="link-list">
+      <div class="download-details" aria-label="Download details">
+        <h3>What you need</h3>
+        <ul class="release-facts">
+          <li><span aria-hidden="true">✓</span><span>Download <strong>MaintenanceGoblin.exe</strong></span></li>
+          <li><span aria-hidden="true">✓</span><span>Compatible with <strong>Windows 10 and 11</strong></span></li>
+          <li><span aria-hidden="true">✓</span><span><strong>No Python installation</strong> required</span></li>
+        </ul>
+      </div>
+      <ul class="link-list" aria-label="Project links">
         <li><a href="https://github.com/uxillary/maintenance-goblin"><span>GitHub repository</span><span aria-hidden="true">↗</span></a></li>
         <li><a href="https://github.com/uxillary/maintenance-goblin/blob/HEAD/CHANGELOG.md"><span>Changelog</span><span aria-hidden="true">↗</span></a></li>
         <li><a href="https://github.com/uxillary/maintenance-goblin/issues/new"><span>Report an issue</span><span aria-hidden="true">↗</span></a></li>
@@ -118,8 +129,8 @@
 
     <section class="section about" aria-labelledby="about-title">
       <div><p class="eyebrow">Made by a human</p><h2 id="about-title">About the maker</h2></div>
-      <p>Maintenance Goblin is an open-source project by Adam Johnston. Follow the work on <a href="https://github.com/uxillary">GitHub</a> or visit <a href="https://ajstudios.dev">ajstudios.dev</a>.</p>
-      <p class="todo-link"><strong>Buy Me a Coffee:</strong> TODO — add the verified profile URL.</p>
+      <p>Maintenance Goblin is an open-source project by Adam Johnston. Follow the work on <a href="https://github.com/uxillary">GitHub</a>, visit <a href="https://adamj.link">adamj.link</a>, or <a href="mailto:mail@adamj.link">get in touch</a>.</p>
+      <p class="support-link"><a href="https://www.buymeacoffee.com/admjski">Support @admjski on Buy Me a Coffee</a></p>
     </section>
   </main>
 
@@ -130,8 +141,9 @@
       <a href="https://github.com/uxillary/maintenance-goblin/releases/latest">v0.2.0</a>
       <a href="https://github.com/uxillary/maintenance-goblin/blob/HEAD/LICENSE">MIT License</a>
       <a href="https://github.com/uxillary/maintenance-goblin">GitHub</a>
-      <a href="https://ajstudios.dev">Website</a>
-      <span title="A verified URL was not found in the repository">Buy Me a Coffee (TODO)</span>
+      <a href="https://adamj.link">Website</a>
+      <a href="mailto:mail@adamj.link">Email</a>
+      <a href="https://www.buymeacoffee.com/admjski">Buy Me a Coffee</a>
     </nav>
   </footer>
 </body>
