@@ -68,6 +68,12 @@ SETTINGS = load_json("settings.json", {"autostart": False, "remote_log": {"url":
 TEST_MODE = False
 DEBUG_MODE = False
 SILENT_MODE = False
+THEME_CYCLE = ("superhero", "darkly", "flatly")
+THEME_NAMES = {
+    "superhero": "Superhero",
+    "darkly": "Darkly",
+    "flatly": "Flatly",
+}
 
 
 def set_window_icon(window: tk.Misc) -> None:
@@ -201,6 +207,14 @@ TASK_READY_GUIDANCE = {
     "Drive Optimization": "Typical: under 5 min",
 }
 
+TASK_ESTIMATE_MINUTES = {
+    "SFC Scan": (5, 15),
+    "DISM Health Restore": (5, 20),
+    "Check Disk": (1, 10),
+    "Clear Temp": (0, 1),
+    "Drive Optimization": (0, 5),
+}
+
 
 def format_duration(seconds: float) -> str:
     """Return an elapsed duration in a compact, human-readable form."""
@@ -213,6 +227,23 @@ def format_duration(seconds: float) -> str:
         return f"{minutes}m {remaining_seconds:02d}s"
     hours, remaining_minutes = divmod(minutes, 60)
     return f"{hours}h {remaining_minutes:02d}m"
+
+
+def estimate_total_duration(task_labels: list[str]) -> str:
+    """Return concise approximate guidance for the selected maintenance plan."""
+
+    if not task_labels:
+        return "—"
+    if len(task_labels) == len(TASKS):
+        return "roughly 15–40+ min"
+    if len(task_labels) == 1:
+        return TASK_DURATION_GUIDANCE[task_labels[0]].replace("usually ", "")
+    if "Disk Cleanup" in task_labels:
+        return "varies with Disk Cleanup"
+    estimates = [TASK_ESTIMATE_MINUTES[label] for label in task_labels]
+    minimum = max(1, sum(item[0] for item in estimates))
+    maximum = sum(item[1] for item in estimates)
+    return f"roughly {minimum}–{maximum} min"
 
 
 def run_task(task: Task, ui: Dict[str, tk.Widget]) -> None:
@@ -370,12 +401,24 @@ def configure_readability_styles(style: ttkb.Style) -> None:
     )
 
 
-def toggle_theme(style: ttkb.Style) -> None:
-    """Switch between a light and dark theme."""
+def toggle_theme(style: ttkb.Style, root: Optional[tk.Misc] = None) -> str:
+    """Advance to the next supported application theme and return its name."""
 
     current = style.theme_use()
-    style.theme_use("flatly" if current == "darkly" else "darkly")
+    try:
+        next_theme = THEME_CYCLE[(THEME_CYCLE.index(current) + 1) % len(THEME_CYCLE)]
+    except ValueError:
+        next_theme = THEME_CYCLE[0]
+    style.theme_use(next_theme)
     configure_readability_styles(style)
+    if root is not None:
+        pending = list(root.winfo_children())
+        while pending:
+            widget = pending.pop()
+            pending.extend(widget.winfo_children())
+            if widget.winfo_class() == "Canvas":
+                widget.configure(background=style.colors.bg)
+    return next_theme
 
 
 def get_system_info() -> dict[str, str]:
@@ -486,6 +529,7 @@ def run_selected_tasks(ui: Dict[str, object]) -> None:
     ui["current_task_started"] = None
     ui["session_elapsed_var"].set("Session elapsed: 0s")
     ui["current_elapsed_var"].set("Preparing selected tasks…")
+    ui["activity_section"].grid()
     ui["activity"].start(12)
 
     def update_timers() -> None:
@@ -550,6 +594,7 @@ def run_selected_tasks(ui: Dict[str, object]) -> None:
                 ui.__setitem__("current_task", None),
                 ui.__setitem__("current_task_started", None),
                 ui["activity"].stop(),
+                ui["activity_section"].grid_remove(),
                 ui["status_var"].set("Maintenance complete — Goblin rests."),
                 ui["current_elapsed_var"].set("All selected tasks complete"),
                 ui["session_elapsed_var"].set(
@@ -570,8 +615,8 @@ def create_gui(root: ttkb.Window) -> None:
 
     style = root.style
     configure_readability_styles(style)
-    root.geometry("960x720")
-    root.minsize(720, 600)
+    root.geometry("960x840")
+    root.minsize(720, 680)
     root.rowconfigure(1, weight=1)
     root.columnconfigure(0, weight=1)
 
@@ -601,7 +646,7 @@ def create_gui(root: ttkb.Window) -> None:
     overview = ttk.Frame(nb, padding=(6, 18))
     nb.add(overview, text="  Overview  ")
     overview.columnconfigure(0, weight=1)
-    overview.rowconfigure(2, weight=1)
+    overview.rowconfigure(2, weight=1, minsize=150)
 
     stats = ttk.Frame(overview)
     stats.grid(row=0, column=0, sticky="ew")
@@ -629,18 +674,71 @@ def create_gui(root: ttkb.Window) -> None:
             card, textvariable=value_var, font=("Segoe UI", 20, "bold")
         ).pack(anchor="w")
         ttk.Label(
-            card, textvariable=detail_var, style="DashboardMuted.TLabel"
+            card,
+            textvariable=detail_var,
+            style="DashboardMuted.TLabel",
+            wraplength=175,
+            justify="left",
         ).pack(anchor="w", pady=(4, 0))
 
     os_var = tk.StringVar()
     ui["os_var"] = os_var
-    ttk.Label(overview, textvariable=os_var, style="DashboardMuted.TLabel").grid(
+    os_label = ttk.Label(
+        overview,
+        textvariable=os_var,
+        style="DashboardMuted.TLabel",
+        wraplength=780,
+    )
+    os_label.grid(
         row=1, column=0, sticky="w", pady=(10, 14)
     )
 
-    maintenance = ttk.Labelframe(overview, text="MAINTENANCE PLAN", padding=14)
+    maintenance = ttk.Labelframe(overview, text="MAINTENANCE PLAN", padding=10)
     maintenance.grid(row=2, column=0, sticky="nsew")
     maintenance.columnconfigure(0, weight=1)
+    maintenance.rowconfigure(0, weight=1)
+
+    task_canvas = tk.Canvas(
+        maintenance,
+        highlightthickness=0,
+        borderwidth=0,
+        background=style.colors.bg,
+    )
+    task_scrollbar = ttk.Scrollbar(
+        maintenance, orient="vertical", command=task_canvas.yview
+    )
+    def update_task_scrollbar(first: str, last: str) -> None:
+        task_scrollbar.set(first, last)
+        if float(first) <= 0.0 and float(last) >= 1.0:
+            task_scrollbar.grid_remove()
+        else:
+            task_scrollbar.grid()
+
+    task_canvas.configure(yscrollcommand=update_task_scrollbar)
+    task_canvas.grid(row=0, column=0, sticky="nsew")
+    task_scrollbar.grid(row=0, column=1, sticky="ns", padx=(8, 0))
+    task_list = ttk.Frame(task_canvas)
+    task_list.columnconfigure(0, weight=1)
+    task_window = task_canvas.create_window((0, 0), window=task_list, anchor="nw")
+
+    def resize_task_list(event: tk.Event) -> None:
+        task_canvas.itemconfigure(task_window, width=event.width)
+        task_canvas.after_idle(
+            lambda: update_task_scrollbar(*map(str, task_canvas.yview()))
+        )
+
+    def refresh_task_scrollregion(_event: tk.Event) -> None:
+        task_canvas.configure(scrollregion=task_canvas.bbox("all"))
+
+    def scroll_tasks(event: tk.Event) -> str:
+        delta = getattr(event, "delta", 0)
+        direction = -1 if delta > 0 else 1
+        task_canvas.yview_scroll(direction, "units")
+        return "break"
+
+    task_canvas.bind("<Configure>", resize_task_list)
+    task_list.bind("<Configure>", refresh_task_scrollregion)
+    task_canvas.bind("<MouseWheel>", scroll_tasks)
 
     descriptions = {
         "SFC Scan": "Check and repair protected Windows system files",
@@ -654,42 +752,68 @@ def create_gui(root: ttkb.Window) -> None:
     task_status_vars: Dict[str, tk.StringVar] = {}
 
     def update_selection_summary() -> None:
-        selected_count = sum(var.get() for var in task_vars.values())
-        ui["summary_var"].set(f"{selected_count} tasks selected")
+        selected = [label for label, var in task_vars.items() if var.get()]
+        ui["summary_var"].set(
+            f"{len(selected)} tasks selected · Estimated total: "
+            f"{estimate_total_duration(selected)}"
+        )
 
     for row, task in enumerate(TASKS):
-        item = ttk.Frame(maintenance, padding=(8, 7))
+        item = ttk.Frame(task_list, padding=(6, 4))
         item.grid(row=row, column=0, sticky="ew")
         item.columnconfigure(1, weight=1)
         selected_var = tk.BooleanVar(value=True)
         status_var = tk.StringVar(value=TASK_READY_GUIDANCE[task.label])
         task_vars[task.label] = selected_var
         task_status_vars[task.label] = status_var
-        ttk.Checkbutton(
+        selector = ttk.Checkbutton(
             item,
             variable=selected_var,
             command=update_selection_summary,
             bootstyle="success-round-toggle",
-        ).grid(row=0, column=0, rowspan=2, padx=(0, 12))
-        ttk.Label(
+        )
+        selector.grid(row=0, column=0, rowspan=2, padx=(0, 10))
+        title_label = ttk.Label(
             item, text=task.label, font=("Segoe UI", 10, "bold")
-        ).grid(row=0, column=1, sticky="w")
-        ttk.Label(
-            item, text=descriptions[task.label], style="DashboardMuted.TLabel"
-        ).grid(row=1, column=1, sticky="w")
-        ttk.Label(
-            item, textvariable=status_var, style="DashboardStatus.TLabel"
-        ).grid(row=0, column=2, rowspan=2, sticky="e", padx=(16, 4))
+        )
+        title_label.grid(row=0, column=1, sticky="w")
+        description_label = ttk.Label(
+            item,
+            text=descriptions[task.label],
+            style="DashboardMuted.TLabel",
+            wraplength=430,
+        )
+        description_label.grid(row=1, column=1, sticky="w")
+        task_status_label = ttk.Label(
+            item,
+            textvariable=status_var,
+            style="DashboardStatus.TLabel",
+            wraplength=175,
+            justify="right",
+        )
+        task_status_label.grid(
+            row=0, column=2, rowspan=2, sticky="e", padx=(12, 4)
+        )
+        for scroll_widget in (
+            item,
+            selector,
+            title_label,
+            description_label,
+            task_status_label,
+        ):
+            scroll_widget.bind("<MouseWheel>", scroll_tasks)
     ui["task_vars"] = task_vars
     ui["task_status_vars"] = task_status_vars
 
     action = ttk.Frame(overview, padding=(0, 16, 0, 0))
-    action.grid(row=3, column=0, sticky="ew")
+    action.grid(row=3, column=0, sticky="ew", pady=(0, 0))
     action.columnconfigure(0, weight=1)
     status_var = tk.StringVar(
         value="Simulation ready" if TEST_MODE else "Ready for maintenance"
     )
-    summary_var = tk.StringVar(value=f"{len(TASKS)} tasks selected")
+    summary_var = tk.StringVar(
+        value=f"{len(TASKS)} tasks selected · Estimated total: roughly 15–40+ min"
+    )
     current_elapsed_var = tk.StringVar(value="No task running")
     session_elapsed_var = tk.StringVar(value="Session elapsed: 0s")
     ui["status_var"] = status_var
@@ -697,24 +821,35 @@ def create_gui(root: ttkb.Window) -> None:
     ui["current_elapsed_var"] = current_elapsed_var
     ui["session_elapsed_var"] = session_elapsed_var
     notice_text = (
-        "Simulation mode — Windows maintenance commands will not run."
+        "SIMULATION MODE · No Windows maintenance commands will run."
         if TEST_MODE
-        else "A full run typically takes 15–40+ min. Windows tools may appear inactive for several minutes."
+        else "Allow roughly 15–40+ min for a full run; Windows tools may appear inactive for several minutes."
     )
-    ttk.Label(
+    notice = ttk.Label(
         action,
         text=notice_text,
-        bootstyle="warning",
+        bootstyle="warning-inverse" if TEST_MODE else "warning",
+        padding=(8, 4) if TEST_MODE else 0,
         wraplength=650,
-    ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+    )
+    notice.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
     ttk.Label(
         action, textvariable=status_var, font=("Segoe UI", 10, "bold")
     ).grid(row=1, column=0, sticky="w")
     ttk.Label(action, textvariable=summary_var, style="DashboardMuted.TLabel").grid(
         row=2, column=0, sticky="w", pady=(2, 2)
     )
-    timing = ttk.Frame(action)
-    timing.grid(row=3, column=0, sticky="ew", padx=(0, 18), pady=(0, 8))
+    activity_section = ttk.Frame(action)
+    activity_section.grid(row=3, column=0, sticky="ew", padx=(0, 18), pady=(5, 8))
+    activity_section.columnconfigure(0, weight=1)
+    ui["activity_section"] = activity_section
+    ttk.Label(
+        activity_section,
+        text="CURRENT TASK ACTIVITY",
+        font=("Segoe UI", 8, "bold"),
+    ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 2))
+    timing = ttk.Frame(activity_section)
+    timing.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 5))
     timing.columnconfigure(0, weight=1)
     ttk.Label(
         timing,
@@ -725,9 +860,17 @@ def create_gui(root: ttkb.Window) -> None:
     ttk.Label(
         timing, textvariable=session_elapsed_var, style="DashboardMuted.TLabel"
     ).grid(row=0, column=1, sticky="e", padx=(16, 0))
-    activity = ttk.Progressbar(action, mode="indeterminate", bootstyle="info-striped")
-    activity.grid(row=4, column=0, sticky="ew", padx=(0, 18), pady=(0, 5))
+    activity = ttk.Progressbar(
+        activity_section, mode="indeterminate", bootstyle="info-striped"
+    )
+    activity.grid(row=2, column=0, columnspan=2, sticky="ew")
     ui["activity"] = activity
+    activity_section.grid_remove()
+    ttk.Label(
+        action,
+        text="OVERALL TASK PROGRESS",
+        font=("Segoe UI", 8, "bold"),
+    ).grid(row=4, column=0, sticky="w", pady=(4, 2))
     progress = ttk.Progressbar(
         action, mode="determinate", bootstyle="success-striped"
     )
@@ -742,6 +885,14 @@ def create_gui(root: ttkb.Window) -> None:
     )
     run_btn.grid(row=1, column=1, rowspan=5, sticky="e")
     ui["run_button"] = run_btn
+
+    def resize_overview_text(event: tk.Event) -> None:
+        available = max(260, event.width - 280)
+        notice.configure(wraplength=available)
+        os_label.configure(wraplength=max(320, event.width - 24))
+
+    action.bind("<Configure>", resize_overview_text)
+    overview.bind("<Configure>", resize_overview_text)
 
     log_tab = ttk.Frame(nb)
     nb.add(log_tab, text="  Logs  ")
@@ -781,15 +932,26 @@ def create_gui(root: ttkb.Window) -> None:
     appearance = ttk.Labelframe(settings, text="APPEARANCE", padding=16)
     appearance.grid(row=2, column=0, sticky="ew", pady=(0, 12))
     appearance.columnconfigure(0, weight=1)
+    theme_name_var = tk.StringVar(value=THEME_NAMES.get(style.theme_use(), "Theme"))
     ttk.Label(
         appearance, text="Application theme", font=("Segoe UI", 10, "bold")
     ).grid(row=0, column=0, sticky="w")
+    ttk.Label(
+        appearance,
+        textvariable=theme_name_var,
+        style="DashboardMuted.TLabel",
+    ).grid(row=1, column=0, sticky="w", pady=(2, 0))
+
+    def cycle_theme() -> None:
+        theme_name = toggle_theme(style, root)
+        theme_name_var.set(THEME_NAMES[theme_name])
+
     ttk.Button(
         appearance,
-        text="Toggle light / dark",
-        command=lambda: toggle_theme(style),
+        text="Cycle theme",
+        command=cycle_theme,
         bootstyle="secondary-outline",
-    ).grid(row=0, column=1, sticky="e")
+    ).grid(row=0, column=1, rowspan=2, sticky="e")
 
     autostart_var = tk.BooleanVar(
         value=SETTINGS.get("autostart", False) or autostart.is_enabled()

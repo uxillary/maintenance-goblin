@@ -33,6 +33,21 @@ class DurationFeedbackTests(unittest.TestCase):
         )
         self.assertEqual(set(app.TASK_DURATION_GUIDANCE), set(app.TASK_READY_GUIDANCE))
 
+    def test_estimated_total_duration(self) -> None:
+        self.assertEqual(app.estimate_total_duration([]), "—")
+        self.assertEqual(
+            app.estimate_total_duration([task.label for task in app.TASKS]),
+            "roughly 15–40+ min",
+        )
+        self.assertEqual(
+            app.estimate_total_duration(["SFC Scan", "Check Disk"]),
+            "roughly 6–25 min",
+        )
+        self.assertEqual(
+            app.estimate_total_duration(["Disk Cleanup"]),
+            "varies; may wait for Windows",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
