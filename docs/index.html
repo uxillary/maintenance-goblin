@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111a24">
+  <meta name="description" content="Maintenance Goblin is a transparent Windows 10/11 dashboard for trusted, built-in maintenance tools.">
+  <meta property="og:title" content="Maintenance Goblin — Windows maintenance, without the nonsense">
+  <meta property="og:description" content="A friendly, open-source dashboard for legitimate Windows maintenance tools.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="img/ui1.png">
+  <meta property="og:image:alt" content="Maintenance Goblin overview dashboard">
+  <title>Maintenance Goblin — Windows maintenance, without the nonsense</title>
+  <link rel="icon" href="img/goblin.ico" sizes="any">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Maintenance Goblin home">
+      <img src="img/goblin.ico" width="40" height="40" alt="">
+      <span>Maintenance Goblin</span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="#features">Features</a>
+      <a href="#screenshots">Screenshots</a>
+      <a href="#safety">Safety</a>
+      <a href="#download">Download</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Windows maintenance, without the nonsense</p>
+        <h1>A friendlier way to care for your PC.</h1>
+        <p class="lede">Maintenance Goblin puts trusted Windows tools behind one clear, approachable dashboard—with conservative defaults and no miracle claims.</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/uxillary/maintenance-goblin/releases/latest">Download Latest Release</a>
+          <a class="button secondary" href="https://github.com/uxillary/maintenance-goblin">View on GitHub</a>
+        </div>
+        <p class="platform"><span aria-hidden="true">●</span> For Windows 10 and 11</p>
+      </div>
+      <div class="hero-mark" aria-hidden="true">
+        <div class="logo-glow"></div>
+        <img src="img/goblin.ico" width="160" height="160" alt="">
+        <span class="status-pill">Ready when you are</span>
+      </div>
+    </section>
+
+    <section class="section intro" aria-labelledby="overview-title">
+      <div>
+        <p class="eyebrow">The honest optimiser</p>
+        <h2 id="overview-title">Built for maintenance, not magic.</h2>
+      </div>
+      <div class="intro-copy">
+        <p>Maintenance Goblin is a friendly interface for legitimate tools already trusted by Windows: SFC, DISM, CHKDSK, temporary-file cleanup, Disk Cleanup, and drive optimisation.</p>
+        <p>It exists to make routine system care easier to understand. The project is transparent and open source, with no registry cleaner, fake health score, “RAM booster,” advertising, or bundled software.</p>
+      </div>
+    </section>
+
+    <section class="section" id="features" aria-labelledby="features-title">
+      <div class="section-heading">
+        <p class="eyebrow">What it does</p>
+        <h2 id="features-title">Useful tools. Clear feedback.</h2>
+        <p>Choose the work you need, then follow each step from the same responsive dashboard.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true">✓</span><h3>Trusted system repairs</h3><p>Run SFC and DISM to check protected system files and repair the Windows component store.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true">◫</span><h3>Conservative drive care</h3><p>Use read-only CHKDSK diagnostics and Windows' media-aware drive optimisation for the system drive.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true">✦</span><h3>Safe cleanup</h3><p>Clear available temporary files—skipping locked items—and open Windows Disk Cleanup.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true">↻</span><h3>Progress at a glance</h3><p>See queued, running, completed, and skipped states, plus task timing and overall progress.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true">≡</span><h3>Logs you can keep</h3><p>Review live command output and export a timestamped text report for the current session.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true">⌁</span><h3>Local and configurable</h3><p>Choose from three themes, optionally launch at sign-in, and unlock achievements stored locally.</p></article>
+      </div>
+    </section>
+
+    <section class="section" id="screenshots" aria-labelledby="screenshots-title">
+      <div class="section-heading">
+        <p class="eyebrow">A look inside</p>
+        <h2 id="screenshots-title">Everything in its place.</h2>
+      </div>
+      <div class="screenshots">
+        <figure>
+          <a href="img/ui1.png"><img src="img/ui1.png" alt="Open the full-size Maintenance Goblin overview showing system statistics, selectable tasks, and progress"></a>
+          <figcaption><strong>Overview</strong><span>System stats, maintenance plan, and progress in one view.</span></figcaption>
+        </figure>
+        <figure>
+          <a href="img/ui2.png"><img src="img/ui2.png" alt="Open the full-size Maintenance Goblin Logs view showing timestamped maintenance output"></a>
+          <figcaption><strong>Logs</strong><span>Readable live output with one-click report export.</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section trust" id="safety" aria-labelledby="safety-title">
+      <div class="trust-badge" aria-hidden="true">✓</div>
+      <div>
+        <p class="eyebrow">A note about SmartScreen</p>
+        <h2 id="safety-title">Transparent, even before you open it.</h2>
+        <p>The current Windows executable is not yet code-signed. Windows SmartScreen may therefore display an <strong>Unknown Publisher</strong> or unrecognised app warning. That warning reflects the missing signature; it does not mean the app is malicious.</p>
+        <p>Maintenance Goblin is open source, so you can inspect exactly what it does. Download builds only from the <a href="https://github.com/uxillary/maintenance-goblin/releases/latest">official GitHub Releases page</a>, where a SHA-256 checksum is provided. Code signing is planned for a future release.</p>
+      </div>
+    </section>
+
+    <section class="section download" id="download" aria-labelledby="download-title">
+      <div>
+        <p class="eyebrow">Release 0.2.0</p>
+        <h2 id="download-title">Put the goblin to work.</h2>
+        <p>Download the standalone executable and checksum from the official release page.</p>
+        <a class="button primary" href="https://github.com/uxillary/maintenance-goblin/releases/latest">Download Latest Release</a>
+      </div>
+      <ul class="link-list">
+        <li><a href="https://github.com/uxillary/maintenance-goblin"><span>GitHub repository</span><span aria-hidden="true">↗</span></a></li>
+        <li><a href="https://github.com/uxillary/maintenance-goblin/blob/HEAD/CHANGELOG.md"><span>Changelog</span><span aria-hidden="true">↗</span></a></li>
+        <li><a href="https://github.com/uxillary/maintenance-goblin/issues/new"><span>Report an issue</span><span aria-hidden="true">↗</span></a></li>
+      </ul>
+    </section>
+
+    <section class="section about" aria-labelledby="about-title">
+      <div><p class="eyebrow">Made by a human</p><h2 id="about-title">About the maker</h2></div>
+      <p>Maintenance Goblin is an open-source project by Adam Johnston. Follow the work on <a href="https://github.com/uxillary">GitHub</a> or visit <a href="https://ajstudios.dev">ajstudios.dev</a>.</p>
+      <p class="todo-link"><strong>Buy Me a Coffee:</strong> TODO — add the verified profile URL.</p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-brand"><img src="img/goblin.ico" width="32" height="32" alt=""><strong>Maintenance Goblin</strong></div>
+    <p>Friendly tools for a healthier Windows PC.</p>
+    <nav aria-label="Footer navigation">
+      <a href="https://github.com/uxillary/maintenance-goblin/releases/latest">v0.2.0</a>
+      <a href="https://github.com/uxillary/maintenance-goblin/blob/HEAD/LICENSE">MIT License</a>
+      <a href="https://github.com/uxillary/maintenance-goblin">GitHub</a>
+      <a href="https://ajstudios.dev">Website</a>
+      <span title="A verified URL was not found in the repository">Buy Me a Coffee (TODO)</span>
+    </nav>
+  </footer>
+</body>
+</html>
