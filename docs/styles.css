@@ -81,6 +81,11 @@ figcaption span { color: var(--muted); font-size: .88rem; }
 .download { margin-top: 6rem; display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 3rem 5rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .download .button { margin-top: .8rem; }
 .download-note { margin: .7rem 0 0; font-size: .8rem; }
+.download-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem 1rem; }
+.download-count { display: inline-flex; align-items: center; gap: .35rem; margin-top: .7rem; color: var(--muted); text-decoration: none; opacity: .72; transition: opacity 150ms ease; }
+.download-count:hover { color: var(--muted); opacity: 1; }
+.download-count i { font-size: .68rem; }
+.download-count img { width: auto; height: 18px; }
 .download-details { padding: 1.5rem; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
 .download-details h3 { margin: 0 0 1rem; font-size: 1rem; }
 .release-facts { display: grid; gap: .85rem; margin: 0; padding: 0; list-style: none; }
