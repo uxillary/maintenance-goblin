@@ -66,6 +66,16 @@ img { display: block; max-width: 100%; }
 .feature-card h3 { margin: 1.15rem 0 .45rem; font-size: 1.08rem; line-height: 1.35; }
 .feature-card p { margin: 0; color: var(--muted); font-size: .94rem; }
 .feature-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 8px; background: var(--accent-dark); color: var(--accent); font-size: 1rem; }
+.detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.detail-grid details, .faq-list details { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.detail-grid details { padding: 1.25rem; }
+details summary { color: var(--text); font-weight: 750; cursor: pointer; }
+details summary::marker { color: var(--accent); }
+.detail-grid p, .faq-list p { margin: .8rem 0 0; color: var(--muted); }
+.detail-grid p { font-size: .94rem; }
+.faq-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.faq-list details { padding: 1rem 1.2rem; }
+.faq-list p { padding-right: 1rem; font-size: .92rem; }
 .screenshots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
 figure { margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
 figure > a { display: block; padding: .7rem; background: #080c11; overflow: hidden; }
@@ -81,11 +91,6 @@ figcaption span { color: var(--muted); font-size: .88rem; }
 .download { margin-top: 6rem; display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 3rem 5rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .download .button { margin-top: .8rem; }
 .download-note { margin: .7rem 0 0; font-size: .8rem; }
-.download-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem 1rem; }
-.download-count { display: inline-flex; align-items: center; gap: .35rem; margin-top: .7rem; color: var(--muted); text-decoration: none; opacity: .72; transition: opacity 150ms ease; }
-.download-count:hover { color: var(--muted); opacity: 1; }
-.download-count i { font-size: .68rem; }
-.download-count img { width: auto; height: 18px; }
 .download-details { padding: 1.5rem; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
 .download-details h3 { margin: 0 0 1rem; font-size: 1rem; }
 .release-facts { display: grid; gap: .85rem; margin: 0; padding: 0; list-style: none; }
@@ -121,7 +126,7 @@ footer nav { grid-column: 2; justify-content: flex-end; }
   .logo-glow { width: 230px; height: 230px; }
   .status-pill { bottom: 15px; }
   .intro, .download, .about { grid-template-columns: 1fr; gap: 2rem; }
-  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .feature-grid, .detail-grid { grid-template-columns: repeat(2, 1fr); }
   .download-details, .link-list, .about .support-link { grid-column: auto; }
   .link-list { grid-template-columns: 1fr; }
   .link-list li:not(:last-child) { border-right: 0; }
@@ -139,7 +144,7 @@ footer nav { grid-column: 2; justify-content: flex-end; }
   .platform { display: grid; grid-template-columns: auto 1fr; align-items: baseline; max-width: 22rem; line-height: 1.6; }
   .platform .platform-icon { grid-row: 1 / 4; }
   .platform .platform-separator { display: none; }
-  .feature-grid, .screenshots { grid-template-columns: 1fr; }
+  .feature-grid, .detail-grid, .faq-list, .screenshots { grid-template-columns: 1fr; }
   .feature-card { min-height: auto; }
   .trust { margin-inline: 1rem; padding: 1.5rem; grid-template-columns: 1fr; }
   .download { margin: 4rem 1rem 0; padding: 2rem 1.25rem; }

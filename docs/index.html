@@ -3,19 +3,83 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maintenance Goblin | Open-Source Windows Maintenance Utility</title>
+  <meta name="description" content="Maintenance Goblin is a free, open-source Windows 10 and 11 maintenance utility with a friendly GUI for SFC, DISM, CHKDSK, cleanup, and drive optimisation.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
   <meta name="theme-color" content="#111a24">
-  <meta name="description" content="Maintenance Goblin is a transparent Windows 10/11 dashboard for trusted, built-in maintenance tools.">
-  <meta property="og:title" content="Maintenance Goblin — Windows maintenance, without the nonsense">
-  <meta property="og:description" content="A friendly, open-source Windows 10/11 dashboard for trusted maintenance tools, with conservative defaults and clear feedback.">
+  <link rel="canonical" href="https://uxillary.github.io/maintenance-goblin/">
+  <meta property="og:title" content="Maintenance Goblin | Open-Source Windows Maintenance Utility">
+  <meta property="og:description" content="A friendly Windows 10 and 11 utility for SFC, DISM, CHKDSK, cleanup, and drive optimisation—with conservative defaults and no miracle claims.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://uxillary.github.io/maintenance-goblin/">
   <meta property="og:site_name" content="Maintenance Goblin">
+  <meta property="og:locale" content="en_GB">
   <meta property="og:image" content="https://uxillary.github.io/maintenance-goblin/img/ui1.png">
-  <meta property="og:image:alt" content="Maintenance Goblin overview dashboard">
-  <title>Maintenance Goblin | Friendly maintenance for Windows 10 &amp; 11</title>
-  <link rel="icon" href="img/goblin.ico" sizes="any">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="956">
+  <meta property="og:image:height" content="748">
+  <meta property="og:image:alt" content="Maintenance Goblin overview dashboard showing Windows maintenance tasks and system information">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Maintenance Goblin | Open-Source Windows Maintenance Utility">
+  <meta name="twitter:description" content="A friendly Windows 10 and 11 utility for SFC, DISM, CHKDSK, cleanup, and drive optimisation—with conservative defaults and no miracle claims.">
+  <meta name="twitter:image" content="https://uxillary.github.io/maintenance-goblin/img/ui1.png">
+  <meta name="twitter:image:alt" content="Maintenance Goblin overview dashboard showing Windows maintenance tasks and system information">
+  <link rel="icon" href="img/goblin.ico" type="image/x-icon" sizes="256x256">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="styles.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://uxillary.github.io/maintenance-goblin/#website",
+        "url": "https://uxillary.github.io/maintenance-goblin/",
+        "name": "Maintenance Goblin",
+        "description": "A friendly, open-source Windows maintenance utility for trusted built-in tools.",
+        "publisher": { "@id": "https://uxillary.github.io/maintenance-goblin/#author" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://uxillary.github.io/maintenance-goblin/#software",
+        "name": "Maintenance Goblin",
+        "softwareVersion": "0.2.0",
+        "operatingSystem": "Windows 10, Windows 11",
+        "applicationCategory": "UtilitiesApplication",
+        "description": "An open-source Windows maintenance utility that provides a friendly interface for SFC, DISM, CHKDSK, temporary-file cleanup, Disk Cleanup, and drive optimisation.",
+        "url": "https://uxillary.github.io/maintenance-goblin/",
+        "downloadUrl": "https://github.com/uxillary/maintenance-goblin/releases/latest",
+        "releaseNotes": "https://github.com/uxillary/maintenance-goblin/blob/HEAD/CHANGELOG.md",
+        "image": "https://uxillary.github.io/maintenance-goblin/img/ui1.png",
+        "softwareHelp": "https://github.com/uxillary/maintenance-goblin/blob/HEAD/README.md",
+        "license": "https://github.com/uxillary/maintenance-goblin/blob/HEAD/LICENSE",
+        "author": { "@id": "https://uxillary.github.io/maintenance-goblin/#author" }
+      },
+      {
+        "@type": "Person",
+        "@id": "https://uxillary.github.io/maintenance-goblin/#author",
+        "name": "Adam Johnston",
+        "url": "https://adamj.link/"
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://uxillary.github.io/maintenance-goblin/#faq",
+        "mainEntity": [
+          { "@type": "Question", "name": "What is Maintenance Goblin?", "acceptedAnswer": { "@type": "Answer", "text": "Maintenance Goblin is a free, open-source Windows maintenance utility that brings trusted system tools into one approachable dashboard." } },
+          { "@type": "Question", "name": "Is Maintenance Goblin safe?", "acceptedAnswer": { "@type": "Answer", "text": "Maintenance Goblin uses conservative defaults and built-in Windows tools. Its source code is public; download only from the official GitHub Releases page and verify the supplied SHA-256 checksum." } },
+          { "@type": "Question", "name": "Why does Windows show Unknown Publisher?", "acceptedAnswer": { "@type": "Answer", "text": "The current executable is not code-signed, so Windows may show an Unknown Publisher or SmartScreen warning. That warning reflects the missing signature, not a claim that the file has been verified as safe." } },
+          { "@type": "Question", "name": "Does Maintenance Goblin use SFC and DISM?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Its SFC GUI runs System File Checker to scan and repair protected system files, while its DISM GUI repairs the Windows component store." } },
+          { "@type": "Question", "name": "Does it work on Windows 10 and Windows 11?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The current release supports Windows 10 and Windows 11." } },
+          { "@type": "Question", "name": "Do I need Python installed?", "acceptedAnswer": { "@type": "Answer", "text": "No. The downloadable MaintenanceGoblin.exe is a standalone application and does not require a separate Python installation." } },
+          { "@type": "Question", "name": "Does it clean the Windows registry?", "acceptedAnswer": { "@type": "Answer", "text": "No. Maintenance Goblin does not include a registry cleaner, RAM booster, or unsupported health score." } },
+          { "@type": "Question", "name": "Does it work offline?", "acceptedAnswer": { "@type": "Answer", "text": "The maintenance tasks run locally and do not require Maintenance Goblin to send telemetry or show advertising. Some Windows repair operations may independently need access to Windows repair sources." } },
+          { "@type": "Question", "name": "What does CHKDSK do?", "acceptedAnswer": { "@type": "Answer", "text": "Maintenance Goblin runs CHKDSK as a read-only diagnostic on the C: drive. It reports file-system information without using repair, dismount, or surface-scan options." } },
+          { "@type": "Question", "name": "Why can maintenance take several minutes?", "acceptedAnswer": { "@type": "Answer", "text": "Windows system scans inspect many files and components, so their duration depends on your storage, system condition, and the work Windows needs to perform." } }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -28,6 +92,7 @@
       <a href="#features">Features</a>
       <a href="#screenshots">Screenshots</a>
       <a href="#safety">Safety</a>
+      <a href="#faq">FAQ</a>
       <a href="#download">Download</a>
     </nav>
   </header>
@@ -37,7 +102,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Windows maintenance, without the nonsense</p>
         <h1>A friendlier way to care for your PC.</h1>
-        <p class="lede">Maintenance Goblin puts trusted Windows tools behind one clear, approachable dashboard—with conservative defaults and no miracle claims.</p>
+        <p class="lede">Maintenance Goblin is an open-source Windows maintenance utility that puts trusted system repair and cleanup tools behind one approachable dashboard—with conservative defaults and no miracle claims.</p>
         <div class="actions">
           <a class="button primary" href="https://github.com/uxillary/maintenance-goblin/releases/latest"><i class="fa-solid fa-download" aria-hidden="true"></i> Download Latest Release</a>
           <a class="button secondary" href="https://github.com/uxillary/maintenance-goblin"><i class="fa-brands fa-github" aria-hidden="true"></i> View on GitHub</a>
@@ -57,7 +122,7 @@
         <h2 id="overview-title">Built for maintenance, not magic.</h2>
       </div>
       <div class="intro-copy">
-        <p>Maintenance Goblin is a friendly interface for legitimate tools already trusted by Windows: SFC, DISM, CHKDSK, temporary-file cleanup, Disk Cleanup, and drive optimisation.</p>
+        <p>Maintenance Goblin is a friendly SFC GUI, DISM GUI, CHKDSK diagnostic tool, and Windows cleanup utility in one. It provides an interface for legitimate tools already built into or trusted by Windows, plus careful temporary-file cleanup.</p>
         <p>It exists to make routine system care easier to understand. The project is transparent and open source, with no registry cleaner, fake health score, “RAM booster,” advertising, or bundled software.</p>
       </div>
     </section>
@@ -85,13 +150,35 @@
       </div>
       <div class="screenshots">
         <figure>
-          <a href="img/ui1.png" aria-label="View the full-size Overview dashboard screenshot"><img src="img/ui1.png" alt="Maintenance Goblin Overview dashboard with system statistics, selectable maintenance tasks, and progress controls"></a>
+          <a href="img/ui1.png" aria-label="View the full-size Overview dashboard screenshot"><img src="img/ui1.png" width="956" height="748" loading="lazy" decoding="async" alt="Maintenance Goblin Overview dashboard with Windows system statistics, selectable maintenance tasks, and progress controls"></a>
           <figcaption><strong>Overview</strong><span>System stats, maintenance plan, and progress in one view.</span></figcaption>
         </figure>
         <figure>
-          <a href="img/ui2.png" aria-label="View the full-size Logs screenshot"><img src="img/ui2.png" alt="Maintenance Goblin Logs view with timestamped command output and report export controls"></a>
+          <a href="img/ui2.png" aria-label="View the full-size Logs screenshot"><img src="img/ui2.png" width="954" height="862" loading="lazy" decoding="async" alt="Maintenance Goblin Logs view with timestamped command output and report export controls"></a>
           <figcaption><strong>Logs</strong><span>Readable live output with one-click report export.</span></figcaption>
         </figure>
+      </div>
+    </section>
+
+    <section class="section details-section" aria-labelledby="details-title">
+      <div class="section-heading">
+        <p class="eyebrow">How it works</p>
+        <h2 id="details-title">Windows maintenance you can understand.</h2>
+        <p>This is a dashboard for genuine Windows maintenance—not a questionable “PC optimiser” promising instant speed boosts.</p>
+      </div>
+      <div class="detail-grid">
+        <details>
+          <summary>SFC, DISM, and system file repair</summary>
+          <p>System File Checker scans protected Windows files and repairs available problems. DISM checks and restores the component store that Windows uses as a repair source. Maintenance Goblin provides a clear GUI for running both tools and reading their output.</p>
+        </details>
+        <details>
+          <summary>CHKDSK and drive optimisation</summary>
+          <p>CHKDSK runs as a read-only diagnostic on the <code>C:</code> drive—without repair, dismount, or surface-scan flags. Drive optimisation asks Windows to choose the appropriate operation for the system drive's media type.</p>
+        </details>
+        <details>
+          <summary>Cleanup and administrator access</summary>
+          <p>Temporary-file cleanup skips locked or inaccessible items, while Disk Cleanup opens the built-in Windows utility. Administrator permission is required because system repair and drive-maintenance commands need elevated Windows access.</p>
+        </details>
       </div>
     </section>
 
@@ -105,32 +192,48 @@
       </div>
     </section>
 
+    <section class="section faq" id="faq" aria-labelledby="faq-title">
+      <div class="section-heading">
+        <p class="eyebrow">Common questions</p>
+        <h2 id="faq-title">Maintenance Goblin FAQ</h2>
+      </div>
+      <div class="faq-list">
+        <details><summary>What is Maintenance Goblin?</summary><p>Maintenance Goblin is a free, open-source Windows maintenance utility that brings trusted system tools into one approachable dashboard.</p></details>
+        <details><summary>Is Maintenance Goblin safe?</summary><p>Maintenance Goblin uses conservative defaults and built-in Windows tools. Its source code is public; download only from the official GitHub Releases page and verify the supplied SHA-256 checksum.</p></details>
+        <details><summary>Why does Windows show Unknown Publisher?</summary><p>The current executable is not code-signed, so Windows may show an Unknown Publisher or SmartScreen warning. That warning reflects the missing signature, not a claim that the file has been verified as safe.</p></details>
+        <details><summary>Does Maintenance Goblin use SFC and DISM?</summary><p>Yes. Its SFC GUI runs System File Checker to scan and repair protected system files, while its DISM GUI repairs the Windows component store.</p></details>
+        <details><summary>Does it work on Windows 10 and Windows 11?</summary><p>Yes. The current release supports Windows 10 and Windows 11.</p></details>
+        <details><summary>Do I need Python installed?</summary><p>No. The downloadable <code>MaintenanceGoblin.exe</code> is a standalone application and does not require a separate Python installation.</p></details>
+        <details><summary>Does it clean the Windows registry?</summary><p>No. Maintenance Goblin does not include a registry cleaner, RAM booster, or unsupported health score.</p></details>
+        <details><summary>Does it work offline?</summary><p>The maintenance tasks run locally and do not require Maintenance Goblin to send telemetry or show advertising. Some Windows repair operations may independently need access to Windows repair sources.</p></details>
+        <details><summary>What does CHKDSK do?</summary><p>Maintenance Goblin runs CHKDSK as a read-only diagnostic on the <code>C:</code> drive. It reports file-system information without using repair, dismount, or surface-scan options.</p></details>
+        <details><summary>Why can maintenance take several minutes?</summary><p>Windows system scans inspect many files and components, so their duration depends on your storage, system condition, and the work Windows needs to perform.</p></details>
+      </div>
+    </section>
+
     <section class="section download" id="download" aria-labelledby="download-title">
       <div>
         <p class="eyebrow">Release 0.2.0</p>
         <h2 id="download-title">Download for Windows.</h2>
         <p>Get the ready-to-run release executable from GitHub. The checksum is included separately so you can verify your download.</p>
         <a class="button primary" href="https://github.com/uxillary/maintenance-goblin/releases/latest"><i class="fa-solid fa-download" aria-hidden="true"></i> Download Latest Release</a>
-        <div class="download-meta">
-          <p class="download-note">Opens the official GitHub Releases page</p>
-          <a class="download-count" href="https://github.com/uxillary/maintenance-goblin/releases" aria-label="View all releases and the total download count on GitHub">
-            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-            <img src="https://img.shields.io/github/downloads/uxillary/maintenance-goblin/total?style=flat&amp;label=downloads&amp;labelColor=172331&amp;color=293747&amp;cacheSeconds=3600" alt="Total GitHub downloads">
-          </a>
-        </div>
+        <p class="download-note">Opens the official GitHub Releases page</p>
       </div>
-      <div class="download-details" aria-label="Download details">
-        <h3>What you need</h3>
+      <div class="download-details">
+        <h3 id="requirements-title">What you need</h3>
         <ul class="release-facts">
           <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>Download <strong>MaintenanceGoblin.exe</strong></span></li>
           <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>Compatible with <strong>Windows 10 and 11</strong></span></li>
           <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span><strong>No Python installation</strong> required</span></li>
         </ul>
       </div>
-      <ul class="link-list" aria-label="Project links">
+      <ul class="link-list" aria-label="Project resources">
         <li><a href="https://github.com/uxillary/maintenance-goblin"><span><i class="fa-brands fa-github" aria-hidden="true"></i> GitHub repository</span><i class="fa-solid fa-arrow-up-right-from-square external-icon" aria-hidden="true"></i></a></li>
         <li><a href="https://github.com/uxillary/maintenance-goblin/blob/HEAD/CHANGELOG.md"><span><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Changelog</span><i class="fa-solid fa-arrow-up-right-from-square external-icon" aria-hidden="true"></i></a></li>
-        <li><a href="https://github.com/uxillary/maintenance-goblin/issues/new"><span><i class="fa-solid fa-bug" aria-hidden="true"></i> Report an issue</span><i class="fa-solid fa-arrow-up-right-from-square external-icon" aria-hidden="true"></i></a></li>
+        <li><a href="https://github.com/uxillary/maintenance-goblin/blob/HEAD/README.md"><span><i class="fa-solid fa-book" aria-hidden="true"></i> Project documentation</span><i class="fa-solid fa-arrow-up-right-from-square external-icon" aria-hidden="true"></i></a></li>
+        <li><a href="https://github.com/uxillary/maintenance-goblin/issues"><span><i class="fa-solid fa-bug" aria-hidden="true"></i> Issues and bug reports</span><i class="fa-solid fa-arrow-up-right-from-square external-icon" aria-hidden="true"></i></a></li>
+        <li><a href="https://github.com/uxillary/maintenance-goblin/blob/HEAD/LICENSE"><span><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> MIT License</span><i class="fa-solid fa-arrow-up-right-from-square external-icon" aria-hidden="true"></i></a></li>
+        <li><a href="https://github.com/uxillary/maintenance-goblin/releases"><span><i class="fa-solid fa-box-archive" aria-hidden="true"></i> All releases</span><i class="fa-solid fa-arrow-up-right-from-square external-icon" aria-hidden="true"></i></a></li>
       </ul>
     </section>
 
