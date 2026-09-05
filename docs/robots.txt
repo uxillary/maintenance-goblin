@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://uxillary.github.io/maintenance-goblin/sitemap.xml
