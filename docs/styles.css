@@ -81,10 +81,10 @@ details summary::marker { color: var(--accent); }
 .faq-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
 .faq-list details { padding: 1rem 1.2rem; }
 .faq-list p { padding-right: 1rem; font-size: .92rem; }
-.screenshots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.screenshots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1.5rem; }
 figure { margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
 figure > a { display: block; padding: .7rem; background: #080c11; overflow: hidden; }
-figure img { width: 100%; border-radius: 7px; aspect-ratio: 16 / 9; object-fit: contain; }
+figure img { width: 100%; height: auto; border-radius: 7px; }
 figure > a img { transition: transform 200ms ease; }
 figure > a:hover img { transform: scale(1.012); }
 figcaption { display: flex; flex-direction: column; padding: 1rem 1.25rem 1.2rem; }
