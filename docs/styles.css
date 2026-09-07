@@ -29,6 +29,9 @@ img { display: block; max-width: 100%; }
 .brand img, .footer-brand img { border-radius: 8px; }
 .site-header nav, footer nav { display: flex; flex-wrap: wrap; gap: 1.5rem; color: var(--muted); font-size: .9rem; }
 .site-header nav a, footer nav a { text-decoration: none; transition: color 150ms ease; }
+.site-header nav a { display: inline-flex; align-items: center; gap: .38rem; }
+.site-header nav a i { width: 1em; color: var(--accent); font-size: .78rem; text-align: center; transition: transform 150ms ease; }
+.site-header nav a:hover i { transform: translateY(-1px); }
 
 .hero { max-width: var(--max); min-height: 620px; margin: auto; padding: 6.5rem 1.5rem 7.5rem; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(260px, .7fr); align-items: center; gap: clamp(3rem, 8vw, 6rem); }
 .hero h1 { max-width: 780px; margin: .45rem 0 1.25rem; font-size: clamp(3rem, 7vw, 5.7rem); line-height: .98; letter-spacing: -.065em; }
@@ -50,7 +53,8 @@ img { display: block; max-width: 100%; }
 .hero-mark { position: relative; display: grid; place-items: center; min-height: 330px; }
 .hero-mark img { z-index: 1; width: min(160px, 45vw); border-radius: 32px; box-shadow: 0 24px 70px #0009; }
 .logo-glow { position: absolute; width: 290px; height: 290px; border: 1px solid #56d68b44; border-radius: 50%; background: radial-gradient(circle, #56d68b25, transparent 68%); box-shadow: 0 0 100px #56d68b1c; }
-.status-pill { position: absolute; z-index: 2; bottom: 35px; padding: .45rem .8rem; border: 1px solid #56d68b55; border-radius: 99px; background: #0b1118e8; color: var(--accent); font-size: .76rem; font-weight: 700; }
+.status-pill { position: absolute; z-index: 2; bottom: 35px; display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .8rem; border: 1px solid #56d68b55; border-radius: 99px; background: #0b1118e8; color: var(--accent); font-size: .76rem; font-weight: 700; }
+.status-pill i { font-size: .68rem; }
 
 .section { max-width: var(--max); margin: auto; padding: 6.5rem 1.5rem; border-top: 1px solid var(--line); }
 .section h2 { margin: 0; font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.1; letter-spacing: -.04em; }
@@ -71,6 +75,7 @@ img { display: block; max-width: 100%; }
 .detail-grid details { padding: 1.25rem; }
 details summary { color: var(--text); font-weight: 750; cursor: pointer; }
 details summary::marker { color: var(--accent); }
+.detail-grid summary i { width: 1.3rem; margin-right: .55rem; color: var(--accent); text-align: center; }
 .detail-grid p, .faq-list p { margin: .8rem 0 0; color: var(--muted); }
 .detail-grid p { font-size: .94rem; }
 .faq-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
@@ -83,6 +88,8 @@ figure img { width: 100%; border-radius: 7px; aspect-ratio: 16 / 9; object-fit: 
 figure > a img { transition: transform 200ms ease; }
 figure > a:hover img { transform: scale(1.012); }
 figcaption { display: flex; flex-direction: column; padding: 1rem 1.25rem 1.2rem; }
+figcaption strong { display: inline-flex; align-items: center; gap: .5rem; }
+figcaption strong i { width: 1em; color: var(--accent); font-size: .85rem; text-align: center; }
 figcaption span { color: var(--muted); font-size: .88rem; }
 .trust { display: grid; grid-template-columns: auto 1fr; gap: 2rem; padding: 3rem; border: 1px solid #56d68b55; border-radius: 14px; background: #101f1c; box-shadow: inset 4px 0 var(--accent); }
 .trust-badge { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: var(--accent-dark); color: var(--accent); font-size: 1.5rem; }
@@ -92,7 +99,8 @@ figcaption span { color: var(--muted); font-size: .88rem; }
 .download .button { margin-top: .8rem; }
 .download-note { margin: .7rem 0 0; font-size: .8rem; }
 .download-details { padding: 1.5rem; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
-.download-details h3 { margin: 0 0 1rem; font-size: 1rem; }
+.download-details h3 { display: flex; align-items: center; gap: .55rem; margin: 0 0 1rem; font-size: 1rem; }
+.download-details h3 i { width: 1em; color: var(--accent); text-align: center; }
 .release-facts { display: grid; gap: .85rem; margin: 0; padding: 0; list-style: none; }
 .release-facts li { display: grid; grid-template-columns: 1.4rem 1fr; gap: .45rem; color: var(--muted); }
 .release-facts li > i { width: 1.4rem; padding-top: .3rem; color: var(--accent); text-align: center; }
